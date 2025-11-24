@@ -29,7 +29,7 @@ db.pragma('journal_mode = WAL');
  * Creates tables if they don't exist
  */
 export function initializeDatabase() {
-  // Example table: app_settings
+  // App settings table
   db.exec(`
     CREATE TABLE IF NOT EXISTS app_settings (
       key TEXT PRIMARY KEY,
@@ -38,7 +38,7 @@ export function initializeDatabase() {
     );
   `);
 
-  // Example table: user_preferences (for demonstration)
+  // User preferences table
   db.exec(`
     CREATE TABLE IF NOT EXISTS user_preferences (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,6 +48,96 @@ export function initializeDatabase() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(category, preference_key)
     );
+  `);
+
+  // Bookmarks table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS bookmarks (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      url TEXT NOT NULL,
+      favicon TEXT,
+      category TEXT,
+      is_team_level INTEGER DEFAULT 0,
+      is_personal INTEGER DEFAULT 1,
+      created_by TEXT,
+      updated_by TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      last_sync_at DATETIME,
+      sync_hash TEXT
+    );
+  `);
+
+  // Executables table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS executables (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      executable_path TEXT NOT NULL,
+      parameters TEXT,
+      icon TEXT,
+      category TEXT,
+      is_team_level INTEGER DEFAULT 0,
+      is_personal INTEGER DEFAULT 1,
+      created_by TEXT,
+      updated_by TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      last_sync_at DATETIME,
+      sync_hash TEXT
+    );
+  `);
+
+  // Scripts table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS scripts (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      script_content TEXT NOT NULL,
+      script_type TEXT CHECK(script_type IN ('powershell', 'cmd')),
+      icon TEXT,
+      category TEXT,
+      is_team_level INTEGER DEFAULT 0,
+      is_personal INTEGER DEFAULT 1,
+      created_by TEXT,
+      updated_by TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      last_sync_at DATETIME,
+      sync_hash TEXT
+    );
+  `);
+
+  // User shares table (for direct user-to-user sharing)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS user_shares (
+      id TEXT PRIMARY KEY,
+      item_type TEXT CHECK(item_type IN ('bookmark', 'executable', 'script')),
+      item_id TEXT NOT NULL,
+      shared_by TEXT NOT NULL,
+      shared_with TEXT NOT NULL,
+      shared_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  // Create indices for better query performance
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_bookmarks_team ON bookmarks(is_team_level);
+    CREATE INDEX IF NOT EXISTS idx_bookmarks_personal ON bookmarks(is_personal);
+    CREATE INDEX IF NOT EXISTS idx_bookmarks_created_by ON bookmarks(created_by);
+    
+    CREATE INDEX IF NOT EXISTS idx_executables_team ON executables(is_team_level);
+    CREATE INDEX IF NOT EXISTS idx_executables_personal ON executables(is_personal);
+    CREATE INDEX IF NOT EXISTS idx_executables_created_by ON executables(created_by);
+    
+    CREATE INDEX IF NOT EXISTS idx_scripts_team ON scripts(is_team_level);
+    CREATE INDEX IF NOT EXISTS idx_scripts_personal ON scripts(is_personal);
+    CREATE INDEX IF NOT EXISTS idx_scripts_created_by ON scripts(created_by);
+    CREATE INDEX IF NOT EXISTS idx_scripts_type ON scripts(script_type);
+    
+    CREATE INDEX IF NOT EXISTS idx_user_shares_item ON user_shares(item_type, item_id);
+    CREATE INDEX IF NOT EXISTS idx_user_shares_with ON user_shares(shared_with);
   `);
 
   console.log('✅ Database initialized at:', dbPath);

@@ -2,66 +2,109 @@ import { contextBridge, ipcRenderer } from 'electron';
 
 console.log('🔧 Preload script is executing...');
 
-// Expose protected methods that allow the renderer process to use
-// the ipcRenderer without exposing the entire object
-contextBridge.exposeInMainWorld('electron', {
-  // Example IPC methods - add your own as needed
-  send: (channel: string, data: any) => {
-    // Whitelist channels
-    const validChannels = ['toMain'];
-    if (validChannels.includes(channel)) {
-      ipcRenderer.send(channel, data);
-    }
-  },
-  receive: (channel: string, func: (...args: any[]) => void) => {
-    const validChannels = ['fromMain', 'update-available', 'update-downloaded'];
-    if (validChannels.includes(channel)) {
-      // Deliberately strip event as it includes `sender`
-      ipcRenderer.on(channel, (_event, ...args) => func(...args));
-    }
-  },
-  invoke: async (channel: string, data?: any) => {
-    const validChannels = ['getAppVersion'];
-    if (validChannels.includes(channel)) {
-      return await ipcRenderer.invoke(channel, data);
-    }
-  },
-});
-
-// Expose database operations to renderer process
-console.log('🔧 Exposing window.database API...');
+// ============ Database (Settings & Preferences) API ============
 contextBridge.exposeInMainWorld('database', {
-  // Settings operations
   getSetting: (key: string) => ipcRenderer.invoke('db:getSetting', key),
   setSetting: (key: string, value: string) => ipcRenderer.invoke('db:setSetting', key, value),
   getAllSettings: () => ipcRenderer.invoke('db:getAllSettings'),
-  deleteSetting: (key: string) => ipcRenderer.invoke('db:deleteSetting', key),
-  
-  // Preferences operations
-  getPreference: (category: string, preferenceKey: string) => 
-    ipcRenderer.invoke('db:getPreference', category, preferenceKey),
-  setPreference: (category: string, preferenceKey: string, preferenceValue: string) => 
-    ipcRenderer.invoke('db:setPreference', category, preferenceKey, preferenceValue),
-  getPreferencesByCategory: (category: string) => 
-    ipcRenderer.invoke('db:getPreferencesByCategory', category),
-  getAllPreferences: () => ipcRenderer.invoke('db:getAllPreferences'),
-  deletePreference: (category: string, preferenceKey: string) => 
-    ipcRenderer.invoke('db:deletePreference', category, preferenceKey),
-  
-  // Utility operations
-  getStats: () => ipcRenderer.invoke('db:getStats'),
   getDatabasePath: () => ipcRenderer.invoke('db:getDatabasePath'),
-  getDatabaseSize: () => ipcRenderer.invoke('db:getDatabaseSize'),
-  testTransaction: () => ipcRenderer.invoke('db:testTransaction'),
-  clearAllData: () => ipcRenderer.invoke('db:clearAllData'),
+  getStats: () => ipcRenderer.invoke('db:getStats'),
 });
 
-// Expose app update operations to renderer process
-console.log('🔧 Exposing window.updates API...');
+// ============ Bookmarks API ============
+contextBridge.exposeInMainWorld('bookmarks', {
+  getAll: (userEmail?: string) => ipcRenderer.invoke('bookmarks:getAll', userEmail),
+  create: (bookmark: any) => ipcRenderer.invoke('bookmarks:create', bookmark),
+  update: (id: string, updates: any) => ipcRenderer.invoke('bookmarks:update', id, updates),
+  delete: (id: string) => ipcRenderer.invoke('bookmarks:delete', id),
+  search: (searchTerm: string, userEmail?: string) => ipcRenderer.invoke('bookmarks:search', searchTerm, userEmail),
+  shareWithUser: (bookmarkId: string, sharedBy: string, sharedWith: string) => 
+    ipcRenderer.invoke('bookmarks:shareWithUser', bookmarkId, sharedBy, sharedWith),
+  promoteToTeam: (bookmarkId: string, userEmail: string) => 
+    ipcRenderer.invoke('bookmarks:promoteToTeam', bookmarkId, userEmail),
+});
+
+// ============ Executables API ============
+contextBridge.exposeInMainWorld('executables', {
+  getAll: (userEmail?: string) => ipcRenderer.invoke('executables:getAll', userEmail),
+  create: (executable: any) => ipcRenderer.invoke('executables:create', executable),
+  update: (id: string, updates: any) => ipcRenderer.invoke('executables:update', id, updates),
+  delete: (id: string) => ipcRenderer.invoke('executables:delete', id),
+  search: (searchTerm: string, userEmail?: string) => ipcRenderer.invoke('executables:search', searchTerm, userEmail),
+  launch: (executablePath: string, parameters?: string) => 
+    ipcRenderer.invoke('executables:launch', executablePath, parameters),
+  extractIcon: (executablePath: string) => ipcRenderer.invoke('executables:extractIcon', executablePath),
+  shareWithUser: (executableId: string, sharedBy: string, sharedWith: string) => 
+    ipcRenderer.invoke('executables:shareWithUser', executableId, sharedBy, sharedWith),
+  promoteToTeam: (executableId: string, userEmail: string) => 
+    ipcRenderer.invoke('executables:promoteToTeam', executableId, userEmail),
+});
+
+// ============ Scripts API ============
+contextBridge.exposeInMainWorld('scripts', {
+  getAll: (userEmail?: string) => ipcRenderer.invoke('scripts:getAll', userEmail),
+  create: (script: any) => ipcRenderer.invoke('scripts:create', script),
+  update: (id: string, updates: any) => ipcRenderer.invoke('scripts:update', id, updates),
+  delete: (id: string) => ipcRenderer.invoke('scripts:delete', id),
+  search: (searchTerm: string, userEmail?: string) => ipcRenderer.invoke('scripts:search', searchTerm, userEmail),
+  execute: (scriptContent: string, scriptType: 'powershell' | 'cmd') => 
+    ipcRenderer.invoke('scripts:execute', scriptContent, scriptType),
+  copyToClipboard: (scriptContent: string) => ipcRenderer.invoke('scripts:copyToClipboard', scriptContent),
+  validateSafety: (scriptContent: string) => ipcRenderer.invoke('scripts:validateSafety', scriptContent),
+  shareWithUser: (scriptId: string, sharedBy: string, sharedWith: string) => 
+    ipcRenderer.invoke('scripts:shareWithUser', scriptId, sharedBy, sharedWith),
+  promoteToTeam: (scriptId: string, userEmail: string) => 
+    ipcRenderer.invoke('scripts:promoteToTeam', scriptId, userEmail),
+});
+
+// ============ Sync API ============
+contextBridge.exposeInMainWorld('sync', {
+  manual: () => ipcRenderer.invoke('sync:manual'),
+  getStatus: () => ipcRenderer.invoke('sync:getStatus'),
+  startLongPolling: () => ipcRenderer.invoke('sync:startLongPolling'),
+  stopLongPolling: () => ipcRenderer.invoke('sync:stopLongPolling'),
+});
+
+// ============ Auth API ============
+contextBridge.exposeInMainWorld('auth', {
+  login: () => ipcRenderer.invoke('auth:login'),
+  logout: () => ipcRenderer.invoke('auth:logout'),
+  getUser: () => ipcRenderer.invoke('auth:getUser'),
+  getUserEmail: () => ipcRenderer.invoke('auth:getUserEmail'),
+  isAuthenticated: () => ipcRenderer.invoke('auth:isAuthenticated'),
+  restoreSession: () => ipcRenderer.invoke('auth:restoreSession'),
+  initializeAuth: (config: any) => ipcRenderer.invoke('auth:initializeAuth', config),
+  onDeviceCode: (callback: (response: any) => void) => {
+    ipcRenderer.on('auth:device-code', (_event, response) => callback(response));
+  },
+});
+
+// ============ System API ============
+contextBridge.exposeInMainWorld('system', {
+  pickFile: () => ipcRenderer.invoke('system:pickFile'),
+  openExternal: (url: string) => ipcRenderer.invoke('system:openExternal', url),
+  getFavicon: (url: string) => ipcRenderer.invoke('system:getFavicon', url),
+  getAppIcon: (executablePath: string) => ipcRenderer.invoke('system:getAppIcon', executablePath),
+  getDefaultPowerShellIcon: () => ipcRenderer.invoke('system:getDefaultPowerShellIcon'),
+  getDefaultCmdIcon: () => ipcRenderer.invoke('system:getDefaultCmdIcon'),
+});
+
+// ============ MySQL API ============
+contextBridge.exposeInMainWorld('mysql', {
+  initialize: (config: any, env: 'dev' | 'prod') => ipcRenderer.invoke('mysql:initialize', config, env),
+  testConnection: () => ipcRenderer.invoke('mysql:testConnection'),
+  saveConfig: (config: any, env: 'dev' | 'prod') => ipcRenderer.invoke('mysql:saveConfig', config, env),
+  getConfig: (env: 'dev' | 'prod') => ipcRenderer.invoke('mysql:getConfig', env),
+  switchEnvironment: (env: 'dev' | 'prod') => ipcRenderer.invoke('mysql:switchEnvironment', env),
+  isConnected: () => ipcRenderer.invoke('mysql:isConnected'),
+  initializeTables: () => ipcRenderer.invoke('mysql:initializeTables'),
+});
+
+// ============ Updates API ============
 contextBridge.exposeInMainWorld('updates', {
-  checkForUpdates: () => ipcRenderer.invoke('update:check'),
-  downloadUpdate: () => ipcRenderer.invoke('update:download'),
-  installUpdate: () => ipcRenderer.invoke('update:install'),
+  check: () => ipcRenderer.invoke('updates:check'),
+  download: () => ipcRenderer.invoke('updates:download'),
+  install: () => ipcRenderer.invoke('updates:install'),
   onUpdateAvailable: (callback: (info: any) => void) => {
     ipcRenderer.on('update-available', (_event, info) => callback(info));
   },
@@ -72,40 +115,87 @@ contextBridge.exposeInMainWorld('updates', {
 
 console.log('✅ Preload script completed successfully');
 
-// Type declarations for the exposed APIs
+// ============ TypeScript Declarations ============
 declare global {
   interface Window {
-    electron: {
-      send: (channel: string, data: any) => void;
-      receive: (channel: string, func: (...args: any[]) => void) => void;
-      invoke: (channel: string, data?: any) => Promise<any>;
-    };
     database: {
-      // Settings
       getSetting: (key: string) => Promise<{ key: string; value: string; updated_at: string } | undefined>;
       setSetting: (key: string, value: string) => Promise<any>;
       getAllSettings: () => Promise<any[]>;
-      deleteSetting: (key: string) => Promise<any>;
-      // Preferences
-      getPreference: (category: string, preferenceKey: string) => Promise<any>;
-      setPreference: (category: string, preferenceKey: string, preferenceValue: string) => Promise<any>;
-      getPreferencesByCategory: (category: string) => Promise<any[]>;
-      getAllPreferences: () => Promise<any[]>;
-      deletePreference: (category: string, preferenceKey: string) => Promise<any>;
-      // Utilities
-      getStats: () => Promise<{ settings: number; preferences: number }>;
       getDatabasePath: () => Promise<string>;
-      getDatabaseSize: () => Promise<{ bytes: number; kilobytes: string; megabytes: string }>;
-      testTransaction: () => Promise<{ success: boolean; timestamp: string }>;
-      clearAllData: () => Promise<{ success: boolean; message: string }>;
+      getStats: () => Promise<any>;
+    };
+    bookmarks: {
+      getAll: (userEmail?: string) => Promise<any[]>;
+      create: (bookmark: any) => Promise<string>;
+      update: (id: string, updates: any) => Promise<any>;
+      delete: (id: string) => Promise<any>;
+      search: (searchTerm: string, userEmail?: string) => Promise<any[]>;
+      shareWithUser: (bookmarkId: string, sharedBy: string, sharedWith: string) => Promise<string>;
+      promoteToTeam: (bookmarkId: string, userEmail: string) => Promise<any>;
+    };
+    executables: {
+      getAll: (userEmail?: string) => Promise<any[]>;
+      create: (executable: any) => Promise<string>;
+      update: (id: string, updates: any) => Promise<any>;
+      delete: (id: string) => Promise<any>;
+      search: (searchTerm: string, userEmail?: string) => Promise<any[]>;
+      launch: (executablePath: string, parameters?: string) => Promise<any>;
+      extractIcon: (executablePath: string) => Promise<string | null>;
+      shareWithUser: (executableId: string, sharedBy: string, sharedWith: string) => Promise<string>;
+      promoteToTeam: (executableId: string, userEmail: string) => Promise<any>;
+    };
+    scripts: {
+      getAll: (userEmail?: string) => Promise<any[]>;
+      create: (script: any) => Promise<string>;
+      update: (id: string, updates: any) => Promise<any>;
+      delete: (id: string) => Promise<any>;
+      search: (searchTerm: string, userEmail?: string) => Promise<any[]>;
+      execute: (scriptContent: string, scriptType: 'powershell' | 'cmd') => Promise<any>;
+      copyToClipboard: (scriptContent: string) => Promise<any>;
+      validateSafety: (scriptContent: string) => Promise<{ safe: boolean; warnings: string[] }>;
+      shareWithUser: (scriptId: string, sharedBy: string, sharedWith: string) => Promise<string>;
+      promoteToTeam: (scriptId: string, userEmail: string) => Promise<any>;
+    };
+    sync: {
+      manual: () => Promise<any>;
+      getStatus: () => Promise<any>;
+      startLongPolling: () => Promise<any>;
+      stopLongPolling: () => Promise<any>;
+    };
+    auth: {
+      login: () => Promise<any>;
+      logout: () => Promise<void>;
+      getUser: () => Promise<any>;
+      getUserEmail: () => Promise<string | null>;
+      isAuthenticated: () => Promise<boolean>;
+      restoreSession: () => Promise<boolean>;
+      initializeAuth: (config: any) => Promise<any>;
+      onDeviceCode: (callback: (response: any) => void) => void;
+    };
+    system: {
+      pickFile: () => Promise<string | null>;
+      openExternal: (url: string) => Promise<any>;
+      getFavicon: (url: string) => Promise<string | null>;
+      getAppIcon: (executablePath: string) => Promise<string | null>;
+      getDefaultPowerShellIcon: () => Promise<string>;
+      getDefaultCmdIcon: () => Promise<string>;
+    };
+    mysql: {
+      initialize: (config: any, env: 'dev' | 'prod') => Promise<any>;
+      testConnection: () => Promise<boolean>;
+      saveConfig: (config: any, env: 'dev' | 'prod') => Promise<any>;
+      getConfig: (env: 'dev' | 'prod') => Promise<any>;
+      switchEnvironment: (env: 'dev' | 'prod') => Promise<any>;
+      isConnected: () => Promise<boolean>;
+      initializeTables: () => Promise<any>;
     };
     updates: {
-      checkForUpdates: () => Promise<any>;
-      downloadUpdate: () => Promise<any>;
-      installUpdate: () => Promise<void>;
+      check: () => Promise<any>;
+      download: () => Promise<any>;
+      install: () => Promise<void>;
       onUpdateAvailable: (callback: (info: any) => void) => void;
       onUpdateDownloaded: (callback: (info: any) => void) => void;
     };
   }
 }
-

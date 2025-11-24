@@ -1,9 +1,12 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, Menu } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { autoUpdater } from 'electron-updater';
 import { initializeDatabase, closeDatabase } from './database';
-import { registerDatabaseHandlers, registerUpdateHandlers } from './ipc-handlers';
+import { registerAllHandlers } from './ipc-handlers-new';
+import { closeMySQLConnection } from './mysql-connection';
+import { stopSyncPolling } from './sync-engine';
+import { restoreSession } from './auth-service';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -62,17 +65,27 @@ autoUpdater.on('error', (err) => {
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   // Initialize database before creating windows
   initializeDatabase();
   
-  // Register IPC handlers for database operations
-  registerDatabaseHandlers();
-  
-  // Register IPC handlers for app updates
-  registerUpdateHandlers();
-  
+  // Create window first
   createWindow();
+  
+  // Register all IPC handlers (requires mainWindow to be created)
+  if (mainWindow) {
+    registerAllHandlers(mainWindow);
+  }
+  
+  // Try to restore authentication session
+  try {
+    await restoreSession();
+  } catch (error) {
+    console.log('No previous session to restore');
+  }
+  
+  // Create application menu
+  createApplicationMenu();
 
   // Check for updates (only in production)
   if (!process.env.VITE_DEV_SERVER_URL) {
@@ -102,8 +115,78 @@ app.on('window-all-closed', () => {
   }
 });
 
-// Close database before quitting
-app.on('before-quit', () => {
+// Close connections before quitting
+app.on('before-quit', async () => {
+  stopSyncPolling();
+  await closeMySQLConnection();
   closeDatabase();
 });
+
+// Create application menu
+function createApplicationMenu() {
+  const template: Electron.MenuItemConstructorOptions[] = [
+    {
+      label: 'File',
+      submenu: [
+        {
+          label: 'Settings',
+          accelerator: 'CmdOrCtrl+,',
+          click: () => {
+            mainWindow?.webContents.send('navigate-to-settings');
+          }
+        },
+        { type: 'separator' },
+        {
+          label: 'Quit',
+          accelerator: 'CmdOrCtrl+Q',
+          click: () => {
+            app.quit();
+          }
+        }
+      ]
+    },
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'delete' },
+        { type: 'separator' },
+        { role: 'selectAll' }
+      ]
+    },
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { role: 'toggleDevTools' },
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' }
+      ]
+    },
+    {
+      label: 'Help',
+      submenu: [
+        {
+          label: 'About Bolt Launch Pad',
+          click: () => {
+            mainWindow?.webContents.send('show-about');
+          }
+        }
+      ]
+    }
+  ];
+
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
+}
 

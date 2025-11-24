@@ -19,7 +19,7 @@ export default defineConfig({
           build: {
             outDir: path.join(__dirname, 'dist/main'),
             rollupOptions: {
-              external: ['better-sqlite3'],
+              external: ['better-sqlite3', 'sharp', 'mysql2'],
             },
           },
         },
