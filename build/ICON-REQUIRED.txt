@@ -1,0 +1,25 @@
+⚠️ ACTION REQUIRED: Add Application Icon ⚠️
+
+Before packaging your application, you MUST add an icon file:
+
+FILE NEEDED: icon.ico
+LOCATION: This folder (build/icon.ico)
+FORMAT: Windows Icon (.ico)
+SIZE: 256x256 pixels (or larger)
+
+QUICK SOLUTION:
+1. Go to https://www.icoconverter.com/
+2. Upload your logo/icon as PNG or JPG
+3. Download the .ico file
+4. Save it as: build/icon.ico
+
+ALTERNATIVE:
+Use the temp-icon.png in this folder as a starting point:
+1. Upload temp-icon.png to https://convertio.co/png-ico/
+2. Download the converted icon.ico
+3. Place it in this folder
+
+Without icon.ico, the app will use the default Electron icon!
+
+For production apps, create a professional icon with your branding.
+
