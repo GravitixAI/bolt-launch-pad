@@ -47,22 +47,46 @@ export async function extractIcon(executablePath: string): Promise<string | null
  */
 async function extractExeIcon(exePath: string): Promise<string | null> {
   try {
-    const tempIconPath = path.join(process.env.TEMP || '/tmp', `icon_${Date.now()}.ico`);
+    const tempIconPath = path.join(process.env.TEMP || '/tmp', `icon_${Date.now()}.png`);
+    
+    console.log('🎨 Extracting icon from:', exePath);
+    console.log('📁 Temp icon path:', tempIconPath);
     
     // Use PowerShell to extract icon
+    // NOTE: PowerShell handles paths with backslashes fine, no need to escape them
     const script = `
-      Add-Type -AssemblyName System.Drawing
-      $icon = [System.Drawing.Icon]::ExtractAssociatedIcon('${exePath.replace(/'/g, "''")}')
-      $bitmap = $icon.ToBitmap()
-      $bitmap.Save('${tempIconPath.replace(/\\/g, '\\\\')}', [System.Drawing.Imaging.ImageFormat]::Png)
-      $bitmap.Dispose()
-      $icon.Dispose()
+      try {
+        Add-Type -AssemblyName System.Drawing
+        $exePath = '${exePath.replace(/'/g, "''")}'
+        $tempPath = '${tempIconPath.replace(/'/g, "''")}'
+        
+        Write-Host "Extracting icon from: $exePath"
+        $icon = [System.Drawing.Icon]::ExtractAssociatedIcon($exePath)
+        
+        if ($icon) {
+          $bitmap = $icon.ToBitmap()
+          $bitmap.Save($tempPath, [System.Drawing.Imaging.ImageFormat]::Png)
+          $bitmap.Dispose()
+          $icon.Dispose()
+          Write-Host "Icon saved to: $tempPath"
+        } else {
+          Write-Host "No icon found"
+          exit 1
+        }
+      } catch {
+        Write-Host "Error: $_"
+        exit 1
+      }
     `;
 
-    await execAsync(`powershell -NoProfile -ExecutionPolicy Bypass -Command "${script}"`);
+    const { stdout, stderr } = await execAsync(`powershell -NoProfile -ExecutionPolicy Bypass -Command "${script}"`);
+    
+    console.log('PowerShell stdout:', stdout);
+    if (stderr) console.error('PowerShell stderr:', stderr);
 
     // Read the icon file and convert to base64
     if (fs.existsSync(tempIconPath)) {
+      console.log('✅ Icon file exists, reading...');
       const iconBuffer = fs.readFileSync(tempIconPath);
       
       // Convert to PNG and resize to 32x32
@@ -75,13 +99,16 @@ async function extractExeIcon(exePath: string): Promise<string | null> {
 
       // Clean up temp file
       fs.unlinkSync(tempIconPath);
-
+      
+      console.log('✅ Icon extracted successfully, length:', base64.length);
       return base64;
+    } else {
+      console.error('❌ Temp icon file was not created');
     }
 
     return null;
   } catch (error) {
-    console.error('Error extracting exe icon:', error);
+    console.error('❌ Error extracting exe icon:', error);
     return null;
   }
 }
