@@ -25,19 +25,33 @@ export async function fetchFavicon(urlString: string): Promise<string | null> {
     if (url.hostname.includes('sharepoint.com')) {
       console.log('📘 Detected SharePoint domain - using SharePoint logo');
       try {
-        // Use Microsoft's official SharePoint favicon
-        const sharePointIconUrl = 'https://static2.sharepointonline.com/files/fabric/assets/brand-icons/product/png/sharepoint_48x1.png';
-        const spBuffer = await downloadImage(sharePointIconUrl);
-        if (spBuffer && spBuffer.length >= 200) {
-          console.log('✅ Got SharePoint logo from Microsoft CDN');
-          const pngBuffer = await sharp(spBuffer)
-            .resize(32, 32, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-            .png()
-            .toBuffer();
-          return `data:image/png;base64,${pngBuffer.toString('base64')}`;
+        // Try multiple Microsoft CDN URLs for SharePoint icon
+        const sharePointIconUrls = [
+          'https://res-1.cdn.office.net/files/fabric-cdn-prod_20230815.002/assets/brand-icons/product/png/sharepoint_48x1.png',
+          'https://spoprod-a.akamaihd.net/files/fabric/assets/brand-icons/product/png/sharepoint_48x1.png',
+          'https://www.microsoft.com/favicon.ico', // Fallback to Microsoft favicon
+        ];
+        
+        for (const iconUrl of sharePointIconUrls) {
+          try {
+            console.log(`🔍 Trying SharePoint icon from: ${iconUrl}`);
+            const spBuffer = await downloadImage(iconUrl);
+            if (spBuffer && spBuffer.length >= 200) {
+              console.log(`✅ Got SharePoint/Microsoft logo (${spBuffer.length} bytes)`);
+              const pngBuffer = await sharp(spBuffer)
+                .resize(32, 32, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+                .png()
+                .toBuffer();
+              return `data:image/png;base64,${pngBuffer.toString('base64')}`;
+            }
+          } catch (e) {
+            console.log(`❌ Failed to get from ${iconUrl}`);
+            continue;
+          }
         }
+        console.log('⚠️ All SharePoint CDN attempts failed, continuing with normal strategies');
       } catch (spError) {
-        console.log('⚠️ Failed to get SharePoint logo, continuing with normal strategies');
+        console.log('⚠️ SharePoint logo fetch error:', spError.message);
       }
     }
 
