@@ -494,7 +494,8 @@ function registerSystemHandlers() {
       return await faviconService.fetchFavicon(url);
     } catch (error) {
       console.error('Error fetching favicon:', error);
-      throw error;
+      // Return null instead of throwing - favicon is optional
+      return null;
     }
   });
 
@@ -503,7 +504,8 @@ function registerSystemHandlers() {
       return await iconService.extractIcon(executablePath);
     } catch (error) {
       console.error('Error getting app icon:', error);
-      throw error;
+      // Return null instead of throwing - icon is optional
+      return null;
     }
   });
 

@@ -48,12 +48,18 @@ export function AddBookmarkDialog({ open, onOpenChange, onSuccess, bookmark }: A
 
     setLoading(true);
     try {
-      // Fetch favicon if not already fetched
+      // Fetch favicon if not already fetched (but don't fail if it errors)
       let favicon = formData.favicon;
       if (!favicon && formData.url) {
-        setFetchingFavicon(true);
-        favicon = await window.system.getFavicon(formData.url);
-        setFetchingFavicon(false);
+        try {
+          setFetchingFavicon(true);
+          favicon = await window.system.getFavicon(formData.url);
+          setFetchingFavicon(false);
+        } catch (faviconError) {
+          console.warn('Failed to fetch favicon, continuing without it:', faviconError);
+          setFetchingFavicon(false);
+          // Continue without favicon - it's optional
+        }
       }
 
       if (bookmark) {
