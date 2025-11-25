@@ -7,12 +7,13 @@ import sharp from 'sharp';
  * Fetch favicon from URL and convert to base64
  */
 export async function fetchFavicon(urlString: string): Promise<string | null> {
-  // Add overall timeout of 10 seconds
+  console.log('🔍 Starting favicon fetch for:', urlString);
+  // Add overall timeout of 8 seconds
   const timeoutPromise = new Promise<null>((resolve) => {
     setTimeout(() => {
-      console.log('Favicon fetch timeout for:', urlString);
+      console.log('⏱️ Favicon fetch timeout for:', urlString);
       resolve(null);
-    }, 10000);
+    }, 8000);
   });
 
   const fetchPromise = (async () => {
@@ -24,13 +25,17 @@ export async function fetchFavicon(urlString: string): Promise<string | null> {
 
     // Strategy 1: Try to parse HTML for favicon link first (most accurate)
     try {
+      console.log('📄 Strategy 1: Parsing HTML...');
       const faviconUrl = await findFaviconInHTML(urlString);
       if (faviconUrl) {
-        console.log(`Found favicon in HTML: ${faviconUrl}`);
+        console.log(`✅ Found favicon in HTML: ${faviconUrl}`);
         faviconBuffer = await downloadImage(faviconUrl);
+        if (faviconBuffer) console.log('✅ Downloaded favicon from HTML link');
+      } else {
+        console.log('❌ No favicon link found in HTML');
       }
     } catch (e) {
-      console.log('HTML parsing for favicon failed');
+      console.log('❌ HTML parsing failed:', e);
     }
 
     // Strategy 2: Try /favicon.ico
@@ -107,7 +112,7 @@ function downloadImage(url: string): Promise<Buffer | null> {
     const protocol = url.startsWith('https') ? https : http;
     
     const options = {
-      timeout: 5000,
+      timeout: 2000, // Reduced timeout - favicon should be fast
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       }
@@ -207,7 +212,7 @@ function downloadHTML(url: string): Promise<string | null> {
     const protocol = url.startsWith('https') ? https : http;
     
     const options = {
-      timeout: 5000,
+      timeout: 3000, // Reduced timeout for HTML parsing
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       }

@@ -63,16 +63,20 @@ export function AddBookmarkDialog({ open, onOpenChange, onSuccess, bookmark }: A
       let favicon = formData.favicon;
       if (!favicon && formData.url && !bookmark) {
         try {
-          console.log('Auto-fetching favicon during save...');
+          console.log('Auto-fetching favicon during save for:', formData.url);
           setFetchingFavicon(true);
           favicon = await window.system.getFavicon(formData.url);
           console.log('Auto-fetch result:', favicon ? 'Success' : 'Failed');
+          console.log('Favicon data length:', favicon ? favicon.length : 0);
+          if (favicon) {
+            console.log('Favicon preview:', favicon.substring(0, 100) + '...');
+          }
           setFetchingFavicon(false);
           if (!favicon) {
             console.log('No favicon found, continuing with letter placeholder');
           }
         } catch (faviconError) {
-          console.warn('Failed to auto-fetch favicon:', faviconError);
+          console.error('Failed to auto-fetch favicon - ERROR:', faviconError);
           setFetchingFavicon(false);
           // Continue without favicon - it's optional
         }
