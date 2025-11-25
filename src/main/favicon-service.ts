@@ -21,6 +21,26 @@ export async function fetchFavicon(urlString: string): Promise<string | null> {
       const url = new URL(urlString);
       const baseUrl = `${url.protocol}//${url.hostname}`;
 
+    // Special case: SharePoint sites - use official SharePoint logo
+    if (url.hostname.includes('sharepoint.com')) {
+      console.log('📘 Detected SharePoint domain - using SharePoint logo');
+      try {
+        // Use Microsoft's official SharePoint favicon
+        const sharePointIconUrl = 'https://static2.sharepointonline.com/files/fabric/assets/brand-icons/product/png/sharepoint_48x1.png';
+        const spBuffer = await downloadImage(sharePointIconUrl);
+        if (spBuffer && spBuffer.length >= 200) {
+          console.log('✅ Got SharePoint logo from Microsoft CDN');
+          const pngBuffer = await sharp(spBuffer)
+            .resize(32, 32, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+            .png()
+            .toBuffer();
+          return `data:image/png;base64,${pngBuffer.toString('base64')}`;
+        }
+      } catch (spError) {
+        console.log('⚠️ Failed to get SharePoint logo, continuing with normal strategies');
+      }
+    }
+
     let faviconBuffer: Buffer | null = null;
 
     // Strategy 1: Apple Touch Icons (HIGHEST PRIORITY - what browsers actually use)
