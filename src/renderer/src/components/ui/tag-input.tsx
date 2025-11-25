@@ -12,7 +12,8 @@ interface TagInputProps {
 }
 
 export interface TagInputRef {
-  commitPendingTag: () => void;
+  commitPendingTag: () => string; // Returns the updated tags string
+  getPendingInput: () => string; // Gets current input value
 }
 
 export const TagInput = forwardRef<TagInputRef, TagInputProps>(
@@ -48,10 +49,15 @@ export const TagInput = forwardRef<TagInputRef, TagInputProps>(
   // Expose method to commit pending input
   useImperativeHandle(ref, () => ({
     commitPendingTag: () => {
-      if (inputValue.trim() !== '') {
-        addTag(inputValue);
+      const trimmed = inputValue.trim();
+      if (trimmed !== '' && !tags.some(t => t.toLowerCase() === trimmed.toLowerCase())) {
+        const newTags = [...tags, trimmed];
+        const newValue = newTags.join(', ');
+        return newValue;
       }
-    }
+      return value; // Return current value if nothing to commit
+    },
+    getPendingInput: () => inputValue
   }));
 
   const addTag = (tag: string) => {

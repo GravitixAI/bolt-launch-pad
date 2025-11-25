@@ -80,8 +80,8 @@ export function AddBookmarkDialog({ open, onOpenChange, onSuccess, bookmark, pre
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Commit any pending tag input before submitting
-    tagInputRef.current?.commitPendingTag();
+    // Commit any pending tag input before submitting (synchronously)
+    const finalTags = tagInputRef.current?.commitPendingTag() || formData.tags;
     
     if (!formData.title || !formData.url) {
       toast.error('Please fill in required fields');
@@ -136,7 +136,7 @@ export function AddBookmarkDialog({ open, onOpenChange, onSuccess, bookmark, pre
           url: formData.url,
           favicon: favicon || undefined,
           category: formData.category || undefined,
-          tags: formData.tags || undefined,
+          tags: finalTags || undefined,
           updated_by: userEmail || 'local-user',
         });
         toast.success('Bookmark updated successfully');
@@ -147,7 +147,7 @@ export function AddBookmarkDialog({ open, onOpenChange, onSuccess, bookmark, pre
           url: formData.url,
           favicon: favicon || undefined,
           category: formData.category || undefined,
-          tags: formData.tags || undefined,
+          tags: finalTags || undefined,
           is_team_level: 0,
           is_personal: 1,
           created_by: userEmail || 'local-user',
