@@ -232,51 +232,78 @@ async function findFaviconInHTML(urlString: string): Promise<string | null> {
     const html = await downloadHTML(urlString);
     if (!html) return null;
 
-    // Look for various types of icon links in HTML
-    // Try to find the largest or most standard icon
-    const iconPatterns = [
-      // Standard icon with sizes (prefer 32x32, 96x96, or larger)
-      /<link[^>]*rel=["']icon["'][^>]*sizes=["'](?:32x32|96x96|128x128|192x192)["'][^>]*href=["']([^"']+)["']/i,
-      /<link[^>]*rel=["']icon["'][^>]*href=["']([^"']+)["'][^>]*sizes=["'](?:32x32|96x96|128x128|192x192)["']/i,
-      // Any icon with type image/png
-      /<link[^>]*rel=["']icon["'][^>]*type=["']image\/png["'][^>]*href=["']([^"']+)["']/i,
-      /<link[^>]*type=["']image\/png["'][^>]*href=["']([^"']+)["'][^>]*rel=["']icon["']/i,
-      // Standard favicon (any size)
-      /<link[^>]*rel=["'](?:shortcut )?icon["'][^>]*href=["']([^"']+)["']/i,
-      // Reverse order (href before rel)
-      /<link[^>]*href=["']([^"']+)["'][^>]*rel=["'](?:shortcut )?icon["']/i,
-      // Apple touch icon as fallback (prefer larger sizes)
-      /<link[^>]*rel=["']apple-touch-icon["'][^>]*sizes=["'](?:120x120|144x144|152x152|180x180)["'][^>]*href=["']([^"']+)["']/i,
-      /<link[^>]*rel=["']apple-touch-icon[^"']*["'][^>]*href=["']([^"']+)["']/i,
-    ];
+    console.log('🔍 Parsing HTML for icon links...');
+    
+    // Extract all <link> tags at once (much faster than multiple regex passes)
+    const linkTagRegex = /<link[^>]+>/gi;
+    const linkTags = html.match(linkTagRegex) || [];
+    console.log(`📋 Found ${linkTags.length} <link> tags`);
 
-    for (let i = 0; i < iconPatterns.length; i++) {
-      const pattern = iconPatterns[i];
-      const match = html.match(pattern);
-      if (match && match[1]) {
-        let faviconPath = match[1];
-        console.log(`✅ Matched pattern ${i + 1}: ${faviconPath}`);
-        
-        // Handle relative URLs
-        if (faviconPath.startsWith('//')) {
-          const url = new URL(urlString);
-          faviconPath = `${url.protocol}${faviconPath}`;
-        } else if (faviconPath.startsWith('/')) {
-          const url = new URL(urlString);
-          faviconPath = `${url.protocol}//${url.hostname}${faviconPath}`;
-        } else if (!faviconPath.startsWith('http')) {
-          const url = new URL(urlString);
-          faviconPath = `${url.protocol}//${url.hostname}/${faviconPath}`;
-        }
+    // Parse each link tag for icon-related attributes
+    const iconCandidates: Array<{ href: string; size: number; type: string }> = [];
 
-        console.log(`🔗 Resolved to: ${faviconPath}`);
-        return faviconPath;
+    for (const tag of linkTags) {
+      const relMatch = tag.match(/rel=["']([^"']+)["']/i);
+      const hrefMatch = tag.match(/href=["']([^"']+)["']/i);
+      const sizesMatch = tag.match(/sizes=["'](\d+)x\d+["']/i);
+      const typeMatch = tag.match(/type=["']([^"']+)["']/i);
+
+      if (!relMatch || !hrefMatch) continue;
+
+      const rel = relMatch[1].toLowerCase();
+      const href = hrefMatch[1];
+      const size = sizesMatch ? parseInt(sizesMatch[1]) : 0;
+      const type = typeMatch ? typeMatch[1] : '';
+
+      // Look for icon or apple-touch-icon
+      if (rel.includes('icon')) {
+        iconCandidates.push({ href, size, type });
       }
     }
 
-    console.log('❌ No favicon link found in HTML');
-    return null;
+    console.log(`🎯 Found ${iconCandidates.length} icon candidates`);
+
+    if (iconCandidates.length === 0) {
+      console.log('❌ No favicon link found in HTML');
+      return null;
+    }
+
+    // Sort by preference: PNG type first, then by size (prefer 32-128px range)
+    iconCandidates.sort((a, b) => {
+      // Prefer PNG
+      if (a.type.includes('png') && !b.type.includes('png')) return -1;
+      if (!a.type.includes('png') && b.type.includes('png')) return 1;
+      
+      // Prefer sizes in the 32-128 range
+      const aInRange = a.size >= 32 && a.size <= 128;
+      const bInRange = b.size >= 32 && b.size <= 128;
+      if (aInRange && !bInRange) return -1;
+      if (!aInRange && bInRange) return 1;
+      
+      // Otherwise prefer larger
+      return b.size - a.size;
+    });
+
+    // Take the best candidate
+    let faviconPath = iconCandidates[0].href;
+    console.log(`✅ Selected icon: ${faviconPath} (size: ${iconCandidates[0].size}, type: ${iconCandidates[0].type})`);
+
+    // Handle relative URLs
+    if (faviconPath.startsWith('//')) {
+      const url = new URL(urlString);
+      faviconPath = `${url.protocol}${faviconPath}`;
+    } else if (faviconPath.startsWith('/')) {
+      const url = new URL(urlString);
+      faviconPath = `${url.protocol}//${url.hostname}${faviconPath}`;
+    } else if (!faviconPath.startsWith('http')) {
+      const url = new URL(urlString);
+      faviconPath = `${url.protocol}//${url.hostname}/${faviconPath}`;
+    }
+
+    console.log(`🔗 Resolved to: ${faviconPath}`);
+    return faviconPath;
   } catch (error) {
+    console.log('❌ Error parsing HTML:', error);
     return null;
   }
 }
