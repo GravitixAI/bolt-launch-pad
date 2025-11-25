@@ -1,18 +1,20 @@
 import { useState, useEffect } from 'react';
-import { Plus, Play, Upload } from 'lucide-react';
-import { SearchBar } from '../components/Layout/SearchBar';
-import { Button } from '../components/ui/button';
+import { Plus } from 'lucide-react';
 import { Executable } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { AddExecutableDialog } from '../components/Executables/AddExecutableDialog';
+import { ExecutableCard } from '../components/Executables/ExecutableCard';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 
 export function ExecutablesView() {
   const { userEmail } = useAuth();
   const [executables, setExecutables] = useState<Executable[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editingExecutable, setEditingExecutable] = useState<Executable | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [executableToDelete, setExecutableToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     loadExecutables();
@@ -27,20 +29,6 @@ export function ExecutablesView() {
       toast.error('Failed to load executables');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleSearch = async (term: string) => {
-    setSearchTerm(term);
-    if (!term) {
-      loadExecutables();
-      return;
-    }
-    try {
-      const results = await window.executables.search(term, userEmail || undefined);
-      setExecutables(results);
-    } catch (error) {
-      console.error('Search failed:', error);
     }
   };
 
@@ -59,14 +47,36 @@ export function ExecutablesView() {
     }
   };
 
-  const handlePromoteToTeam = async (id: string) => {
+  const handleEdit = (executable: Executable) => {
+    setEditingExecutable(executable);
+    setAddDialogOpen(true);
+  };
+
+  const handleDelete = (id: string) => {
+    setExecutableToDelete(id);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!executableToDelete) return;
+
     try {
-      await window.executables.promoteToTeam(id, userEmail || '');
-      toast.success('Executable promoted to team level');
+      await window.executables.delete(executableToDelete);
+      toast.success('Executable deleted successfully');
       loadExecutables();
     } catch (error) {
-      console.error('Failed to promote:', error);
-      toast.error('Failed to promote executable');
+      console.error('Failed to delete executable:', error);
+      toast.error('Failed to delete executable');
+    } finally {
+      setDeleteConfirmOpen(false);
+      setExecutableToDelete(null);
+    }
+  };
+
+  const handleDialogClose = (open: boolean) => {
+    setAddDialogOpen(open);
+    if (!open) {
+      setEditingExecutable(null);
     }
   };
 
@@ -76,79 +86,60 @@ export function ExecutablesView() {
 
   return (
     <div className="p-8">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-bold">Executables</h2>
-          <Button onClick={() => setAddDialogOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Executable
-          </Button>
-        </div>
-
-        {/* Add Dialog */}
-        <AddExecutableDialog
-          open={addDialogOpen}
-          onOpenChange={setAddDialogOpen}
-          onSuccess={loadExecutables}
-        />
-
-        {/* Search */}
-        <SearchBar onSearch={handleSearch} placeholder="Search executables..." />
-
-        {/* Executables Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="max-w-7xl mx-auto">
+        {/* Executables Grid - Chrome-style */}
+        <div className="flex flex-wrap gap-6 mb-8">
           {executables.map((executable) => (
-            <div
+            <ExecutableCard
               key={executable.id}
-              className="p-4 rounded-lg border border-border bg-card hover:bg-accent transition-colors cursor-pointer"
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  {executable.icon && (
-                    <img src={executable.icon} alt="" className="w-6 h-6" />
-                  )}
-                  <h3 className="font-semibold text-foreground truncate">{executable.title}</h3>
-                </div>
-                {executable.is_team_level === 1 && (
-                  <span className="px-2 py-1 text-xs rounded bg-primary text-primary-foreground">Team</span>
-                )}
-              </div>
-              <p className="text-sm text-muted-foreground truncate mb-1">{executable.executable_path}</p>
-              {executable.parameters && (
-                <p className="text-xs text-muted-foreground truncate mb-3">Params: {executable.parameters}</p>
-              )}
-              <div className="flex gap-2">
-                <Button 
-                  size="sm" 
-                  variant="default"
-                  onClick={() => handleLaunch(executable)}
-                >
-                  <Play className="w-4 h-4 mr-2" />
-                  Launch
-                </Button>
-                {executable.is_team_level === 0 && (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => handlePromoteToTeam(executable.id)}
-                  >
-                    <Upload className="w-4 h-4" />
-                  </Button>
-                )}
-              </div>
-            </div>
+              executable={executable}
+              onLaunch={handleLaunch}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+            />
           ))}
+
+          {/* Add Shortcut Button */}
+          <div
+            className="flex flex-col items-center gap-2 w-28 cursor-pointer"
+            onClick={() => {
+              setEditingExecutable(null);
+              setAddDialogOpen(true);
+            }}
+          >
+            <div className="flex items-center justify-center w-24 h-24 rounded-full bg-muted hover:bg-accent transition-colors">
+              <Plus className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <span className="text-sm text-center text-foreground">Add shortcut</span>
+          </div>
         </div>
 
         {executables.length === 0 && (
           <div className="text-center py-12 text-muted-foreground">
             <p>No executables found</p>
-            <p className="text-sm">Add your first executable to get started</p>
+            <p className="text-sm">Click "Add shortcut" to get started</p>
           </div>
         )}
+
+        {/* Dialogs */}
+        <AddExecutableDialog
+          open={addDialogOpen}
+          onOpenChange={handleDialogClose}
+          onSuccess={loadExecutables}
+          executable={editingExecutable}
+        />
+
+        <ConfirmDialog
+          open={deleteConfirmOpen}
+          onOpenChange={setDeleteConfirmOpen}
+          title="Remove executable?"
+          description="This executable will be permanently deleted."
+          onConfirm={confirmDelete}
+          confirmText="Remove"
+          cancelText="Cancel"
+          variant="destructive"
+        />
       </div>
     </div>
   );
 }
-

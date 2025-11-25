@@ -1,18 +1,20 @@
 import { useState, useEffect } from 'react';
-import { Plus, Play, Copy, Upload } from 'lucide-react';
-import { SearchBar } from '../components/Layout/SearchBar';
-import { Button } from '../components/ui/button';
+import { Plus } from 'lucide-react';
 import { Script } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { AddScriptDialog } from '../components/Scripts/AddScriptDialog';
+import { ScriptCard } from '../components/Scripts/ScriptCard';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 
 export function ScriptsView() {
   const { userEmail } = useAuth();
   const [scripts, setScripts] = useState<Script[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editingScript, setEditingScript] = useState<Script | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [scriptToDelete, setScriptToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     loadScripts();
@@ -27,20 +29,6 @@ export function ScriptsView() {
       toast.error('Failed to load scripts');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleSearch = async (term: string) => {
-    setSearchTerm(term);
-    if (!term) {
-      loadScripts();
-      return;
-    }
-    try {
-      const results = await window.scripts.search(term, userEmail || undefined);
-      setScripts(results);
-    } catch (error) {
-      console.error('Search failed:', error);
     }
   };
 
@@ -61,24 +49,36 @@ export function ScriptsView() {
     }
   };
 
-  const handleCopy = async (script: Script) => {
+  const handleEdit = (script: Script) => {
+    setEditingScript(script);
+    setAddDialogOpen(true);
+  };
+
+  const handleDelete = (id: string) => {
+    setScriptToDelete(id);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!scriptToDelete) return;
+
     try {
-      await window.scripts.copyToClipboard(script.script_content);
-      toast.success('Script copied to clipboard');
+      await window.scripts.delete(scriptToDelete);
+      toast.success('Script deleted successfully');
+      loadScripts();
     } catch (error) {
-      console.error('Failed to copy:', error);
-      toast.error('Failed to copy script');
+      console.error('Failed to delete script:', error);
+      toast.error('Failed to delete script');
+    } finally {
+      setDeleteConfirmOpen(false);
+      setScriptToDelete(null);
     }
   };
 
-  const handlePromoteToTeam = async (id: string) => {
-    try {
-      await window.scripts.promoteToTeam(id, userEmail || '');
-      toast.success('Script promoted to team level');
-      loadScripts();
-    } catch (error) {
-      console.error('Failed to promote:', error);
-      toast.error('Failed to promote script');
+  const handleDialogClose = (open: boolean) => {
+    setAddDialogOpen(open);
+    if (!open) {
+      setEditingScript(null);
     }
   };
 
@@ -88,91 +88,60 @@ export function ScriptsView() {
 
   return (
     <div className="p-8">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-bold">Scripts</h2>
-          <Button onClick={() => setAddDialogOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Script
-          </Button>
-        </div>
-
-        {/* Add Dialog */}
-        <AddScriptDialog
-          open={addDialogOpen}
-          onOpenChange={setAddDialogOpen}
-          onSuccess={loadScripts}
-        />
-
-        {/* Search */}
-        <SearchBar onSearch={handleSearch} placeholder="Search scripts..." />
-
-        {/* Scripts Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="max-w-7xl mx-auto">
+        {/* Scripts Grid - Chrome-style */}
+        <div className="flex flex-wrap gap-6 mb-8">
           {scripts.map((script) => (
-            <div
+            <ScriptCard
               key={script.id}
-              className="p-4 rounded-lg border border-border bg-card hover:bg-accent transition-colors cursor-pointer"
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  {script.icon && (
-                    <img src={script.icon} alt="" className="w-5 h-5" />
-                  )}
-                  <h3 className="font-semibold text-foreground">{script.title}</h3>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-1 text-xs rounded bg-secondary text-secondary-foreground">
-                    {script.script_type}
-                  </span>
-                  {script.is_team_level === 1 && (
-                    <span className="px-2 py-1 text-xs rounded bg-primary text-primary-foreground">Team</span>
-                  )}
-                </div>
-              </div>
-              <pre className="text-xs text-foreground bg-muted p-2 rounded mb-3 max-h-32 overflow-auto">
-                {script.script_content.substring(0, 200)}
-                {script.script_content.length > 200 && '...'}
-              </pre>
-              <div className="flex gap-2">
-                <Button 
-                  size="sm" 
-                  variant="default"
-                  onClick={() => handleExecute(script)}
-                >
-                  <Play className="w-4 h-4 mr-2" />
-                  Execute
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="secondary"
-                  onClick={() => handleCopy(script)}
-                >
-                  <Copy className="w-4 h-4" />
-                </Button>
-                {script.is_team_level === 0 && (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => handlePromoteToTeam(script.id)}
-                  >
-                    <Upload className="w-4 h-4" />
-                  </Button>
-                )}
-              </div>
-            </div>
+              script={script}
+              onExecute={handleExecute}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+            />
           ))}
+
+          {/* Add Shortcut Button */}
+          <div
+            className="flex flex-col items-center gap-2 w-28 cursor-pointer"
+            onClick={() => {
+              setEditingScript(null);
+              setAddDialogOpen(true);
+            }}
+          >
+            <div className="flex items-center justify-center w-24 h-24 rounded-full bg-muted hover:bg-accent transition-colors">
+              <Plus className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <span className="text-sm text-center text-foreground">Add shortcut</span>
+          </div>
         </div>
 
         {scripts.length === 0 && (
           <div className="text-center py-12 text-muted-foreground">
             <p>No scripts found</p>
-            <p className="text-sm">Add your first script to get started</p>
+            <p className="text-sm">Click "Add shortcut" to get started</p>
           </div>
         )}
+
+        {/* Dialogs */}
+        <AddScriptDialog
+          open={addDialogOpen}
+          onOpenChange={handleDialogClose}
+          onSuccess={loadScripts}
+          script={editingScript}
+        />
+
+        <ConfirmDialog
+          open={deleteConfirmOpen}
+          onOpenChange={setDeleteConfirmOpen}
+          title="Remove script?"
+          description="This script will be permanently deleted."
+          onConfirm={confirmDelete}
+          confirmText="Remove"
+          cancelText="Cancel"
+          variant="destructive"
+        />
       </div>
     </div>
   );
 }
-

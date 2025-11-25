@@ -1,18 +1,21 @@
 import { useState, useEffect } from 'react';
-import { Plus, ExternalLink, Share2, Upload } from 'lucide-react';
-import { SearchBar } from '../components/Layout/SearchBar';
+import { Plus } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Bookmark } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { AddBookmarkDialog } from '../components/Bookmarks/AddBookmarkDialog';
+import { BookmarkCard } from '../components/Bookmarks/BookmarkCard';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 
 export function BookmarksView() {
   const { userEmail } = useAuth();
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editingBookmark, setEditingBookmark] = useState<Bookmark | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [bookmarkToDelete, setBookmarkToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     loadBookmarks();
@@ -30,20 +33,6 @@ export function BookmarksView() {
     }
   };
 
-  const handleSearch = async (term: string) => {
-    setSearchTerm(term);
-    if (!term) {
-      loadBookmarks();
-      return;
-    }
-    try {
-      const results = await window.bookmarks.search(term, userEmail || undefined);
-      setBookmarks(results);
-    } catch (error) {
-      console.error('Search failed:', error);
-    }
-  };
-
   const handleOpenBookmark = async (url: string) => {
     try {
       await window.system.openExternal(url);
@@ -53,14 +42,36 @@ export function BookmarksView() {
     }
   };
 
-  const handlePromoteToTeam = async (id: string) => {
+  const handleEdit = (bookmark: Bookmark) => {
+    setEditingBookmark(bookmark);
+    setAddDialogOpen(true);
+  };
+
+  const handleDelete = (id: string) => {
+    setBookmarkToDelete(id);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!bookmarkToDelete) return;
+
     try {
-      await window.bookmarks.promoteToTeam(id, userEmail || '');
-      toast.success('Bookmark promoted to team level');
+      await window.bookmarks.delete(bookmarkToDelete);
+      toast.success('Bookmark deleted successfully');
       loadBookmarks();
     } catch (error) {
-      console.error('Failed to promote:', error);
-      toast.error('Failed to promote bookmark');
+      console.error('Failed to delete bookmark:', error);
+      toast.error('Failed to delete bookmark');
+    } finally {
+      setDeleteConfirmOpen(false);
+      setBookmarkToDelete(null);
+    }
+  };
+
+  const handleDialogClose = (open: boolean) => {
+    setAddDialogOpen(open);
+    if (!open) {
+      setEditingBookmark(null);
     }
   };
 
@@ -70,73 +81,59 @@ export function BookmarksView() {
 
   return (
     <div className="p-8">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-bold">Bookmarks</h2>
-          <Button onClick={() => setAddDialogOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Bookmark
-          </Button>
-        </div>
-
-        {/* Add Dialog */}
-        <AddBookmarkDialog
-          open={addDialogOpen}
-          onOpenChange={setAddDialogOpen}
-          onSuccess={loadBookmarks}
-        />
-
-        {/* Search */}
-        <SearchBar onSearch={handleSearch} placeholder="Search bookmarks..." />
-
-        {/* Bookmarks Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="max-w-7xl mx-auto">
+        {/* Bookmarks Grid - Chrome-style */}
+        <div className="flex flex-wrap gap-6 mb-8">
           {bookmarks.map((bookmark) => (
-            <div
+            <BookmarkCard
               key={bookmark.id}
-              className="p-4 rounded-lg border border-border bg-card hover:bg-accent transition-colors cursor-pointer"
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  {bookmark.favicon && (
-                    <img src={bookmark.favicon} alt="" className="w-4 h-4" />
-                  )}
-                  <h3 className="font-semibold text-foreground truncate">{bookmark.title}</h3>
-                </div>
-                {bookmark.is_team_level === 1 && (
-                  <span className="px-2 py-1 text-xs rounded bg-primary text-primary-foreground">Team</span>
-                )}
-              </div>
-              <p className="text-sm text-muted-foreground truncate mb-3">{bookmark.url}</p>
-              <div className="flex gap-2">
-                <Button 
-                  size="sm" 
-                  variant="secondary"
-                  onClick={() => handleOpenBookmark(bookmark.url)}
-                >
-                  <ExternalLink className="w-4 h-4" />
-                </Button>
-                {bookmark.is_team_level === 0 && (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => handlePromoteToTeam(bookmark.id)}
-                  >
-                    <Upload className="w-4 h-4" />
-                  </Button>
-                )}
-              </div>
-            </div>
+              bookmark={bookmark}
+              onOpen={handleOpenBookmark}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+            />
           ))}
+
+          {/* Add Shortcut Button */}
+          <div
+            className="flex flex-col items-center gap-2 w-28 cursor-pointer"
+            onClick={() => {
+              setEditingBookmark(null);
+              setAddDialogOpen(true);
+            }}
+          >
+            <div className="flex items-center justify-center w-24 h-24 rounded-full bg-muted hover:bg-accent transition-colors">
+              <Plus className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <span className="text-sm text-center text-foreground">Add shortcut</span>
+          </div>
         </div>
 
         {bookmarks.length === 0 && (
           <div className="text-center py-12 text-muted-foreground">
             <p>No bookmarks found</p>
-            <p className="text-sm">Add your first bookmark to get started</p>
+            <p className="text-sm">Click "Add shortcut" to get started</p>
           </div>
         )}
+
+        {/* Dialogs */}
+        <AddBookmarkDialog
+          open={addDialogOpen}
+          onOpenChange={handleDialogClose}
+          onSuccess={loadBookmarks}
+          bookmark={editingBookmark}
+        />
+
+        <ConfirmDialog
+          open={deleteConfirmOpen}
+          onOpenChange={setDeleteConfirmOpen}
+          title="Remove bookmark?"
+          description="This bookmark will be permanently deleted."
+          onConfirm={confirmDelete}
+          confirmText="Remove"
+          cancelText="Cancel"
+          variant="destructive"
+        />
       </div>
     </div>
   );

@@ -1,19 +1,21 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
+import { Executable } from '../../types';
 import { FolderOpen } from 'lucide-react';
 
 interface AddExecutableDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
+  executable?: Executable | null;
 }
 
-export function AddExecutableDialog({ open, onOpenChange, onSuccess }: AddExecutableDialogProps) {
+export function AddExecutableDialog({ open, onOpenChange, onSuccess, executable }: AddExecutableDialogProps) {
   const { userEmail } = useAuth();
   const [loading, setLoading] = useState(false);
   const [extractingIcon, setExtractingIcon] = useState(false);
@@ -24,6 +26,20 @@ export function AddExecutableDialog({ open, onOpenChange, onSuccess }: AddExecut
     category: '',
     icon: null as string | null,
   });
+
+  useEffect(() => {
+    if (executable) {
+      setFormData({
+        title: executable.title,
+        executable_path: executable.executable_path,
+        parameters: executable.parameters || '',
+        category: executable.category || '',
+        icon: executable.icon || null,
+      });
+    } else {
+      setFormData({ title: '', executable_path: '', parameters: '', category: '', icon: null });
+    }
+  }, [executable, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,25 +58,37 @@ export function AddExecutableDialog({ open, onOpenChange, onSuccess }: AddExecut
         setExtractingIcon(false);
       }
 
-      await window.executables.create({
-        title: formData.title,
-        executable_path: formData.executable_path,
-        parameters: formData.parameters || undefined,
-        icon: icon || undefined,
-        category: formData.category || undefined,
-        is_team_level: 0,
-        is_personal: 1,
-        created_by: userEmail || 'local-user',
-        updated_by: userEmail || 'local-user',
-      });
+      if (executable) {
+        await window.executables.update(executable.id, {
+          title: formData.title,
+          executable_path: formData.executable_path,
+          parameters: formData.parameters || undefined,
+          icon: icon || undefined,
+          category: formData.category || undefined,
+          updated_by: userEmail || 'local-user',
+        });
+        toast.success('Executable updated successfully');
+      } else {
+        await window.executables.create({
+          title: formData.title,
+          executable_path: formData.executable_path,
+          parameters: formData.parameters || undefined,
+          icon: icon || undefined,
+          category: formData.category || undefined,
+          is_team_level: 0,
+          is_personal: 1,
+          created_by: userEmail || 'local-user',
+          updated_by: userEmail || 'local-user',
+        });
+        toast.success('Executable created successfully');
+      }
 
-      toast.success('Executable created successfully');
       setFormData({ title: '', executable_path: '', parameters: '', category: '', icon: null });
       onOpenChange(false);
       onSuccess();
     } catch (error) {
-      console.error('Failed to create executable:', error);
-      toast.error('Failed to create executable');
+      console.error(`Failed to ${executable ? 'update' : 'create'} executable:`, error);
+      toast.error(`Failed to ${executable ? 'update' : 'create'} executable`);
     } finally {
       setLoading(false);
       setExtractingIcon(false);
@@ -109,7 +137,7 @@ export function AddExecutableDialog({ open, onOpenChange, onSuccess }: AddExecut
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Add Executable</DialogTitle>
+          <DialogTitle>{executable ? 'Edit shortcut' : 'Add Executable'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
@@ -169,11 +197,11 @@ export function AddExecutableDialog({ open, onOpenChange, onSuccess }: AddExecut
             )}
           </div>
           <DialogFooter>
-            <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
             <Button type="submit" disabled={loading || extractingIcon}>
-              {loading ? 'Creating...' : 'Create Executable'}
+              {loading ? (executable ? 'Saving...' : 'Creating...') : 'Done'}
             </Button>
           </DialogFooter>
         </form>

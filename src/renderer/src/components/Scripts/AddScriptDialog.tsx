@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -6,14 +6,16 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
+import { Script } from '../../types';
 
 interface AddScriptDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
+  script?: Script | null;
 }
 
-export function AddScriptDialog({ open, onOpenChange, onSuccess }: AddScriptDialogProps) {
+export function AddScriptDialog({ open, onOpenChange, onSuccess, script }: AddScriptDialogProps) {
   const { userEmail } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -22,6 +24,19 @@ export function AddScriptDialog({ open, onOpenChange, onSuccess }: AddScriptDial
     script_type: 'powershell' as 'powershell' | 'cmd',
     category: '',
   });
+
+  useEffect(() => {
+    if (script) {
+      setFormData({
+        title: script.title,
+        script_content: script.script_content,
+        script_type: script.script_type,
+        category: script.category || '',
+      });
+    } else {
+      setFormData({ title: '', script_content: '', script_type: 'powershell', category: '' });
+    }
+  }, [script, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,25 +52,37 @@ export function AddScriptDialog({ open, onOpenChange, onSuccess }: AddScriptDial
         ? await window.system.getDefaultPowerShellIcon()
         : await window.system.getDefaultCmdIcon();
 
-      await window.scripts.create({
-        title: formData.title,
-        script_content: formData.script_content,
-        script_type: formData.script_type,
-        icon,
-        category: formData.category || undefined,
-        is_team_level: 0,
-        is_personal: 1,
-        created_by: userEmail || 'local-user',
-        updated_by: userEmail || 'local-user',
-      });
+      if (script) {
+        await window.scripts.update(script.id, {
+          title: formData.title,
+          script_content: formData.script_content,
+          script_type: formData.script_type,
+          icon,
+          category: formData.category || undefined,
+          updated_by: userEmail || 'local-user',
+        });
+        toast.success('Script updated successfully');
+      } else {
+        await window.scripts.create({
+          title: formData.title,
+          script_content: formData.script_content,
+          script_type: formData.script_type,
+          icon,
+          category: formData.category || undefined,
+          is_team_level: 0,
+          is_personal: 1,
+          created_by: userEmail || 'local-user',
+          updated_by: userEmail || 'local-user',
+        });
+        toast.success('Script created successfully');
+      }
 
-      toast.success('Script created successfully');
       setFormData({ title: '', script_content: '', script_type: 'powershell', category: '' });
       onOpenChange(false);
       onSuccess();
     } catch (error) {
-      console.error('Failed to create script:', error);
-      toast.error('Failed to create script');
+      console.error(`Failed to ${script ? 'update' : 'create'} script:`, error);
+      toast.error(`Failed to ${script ? 'update' : 'create'} script`);
     } finally {
       setLoading(false);
     }
@@ -65,7 +92,7 @@ export function AddScriptDialog({ open, onOpenChange, onSuccess }: AddScriptDial
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Add Script</DialogTitle>
+          <DialogTitle>{script ? 'Edit shortcut' : 'Add Script'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
@@ -122,11 +149,11 @@ export function AddScriptDialog({ open, onOpenChange, onSuccess }: AddScriptDial
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? 'Creating...' : 'Create Script'}
+              {loading ? (script ? 'Saving...' : 'Creating...') : 'Done'}
             </Button>
           </DialogFooter>
         </form>
