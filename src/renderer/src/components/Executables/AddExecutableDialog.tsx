@@ -179,7 +179,8 @@ export function AddExecutableDialog({ open, onOpenChange, onSuccess, executable,
     setExtractingIcon(true);
     try {
       const icon = await window.executables.extractIcon(executablePath);
-      setFormData({ ...formData, icon });
+      // Use functional update to avoid race condition with file path setting
+      setFormData(prev => ({ ...prev, icon }));
       if (icon) {
         toast.success('Icon extracted successfully');
       } else {
