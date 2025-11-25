@@ -27,8 +27,8 @@ export function BookmarkCard({ bookmark, onOpen, onEdit, onDelete }: BookmarkCar
     >
       {/* Main clickable card */}
       <div
-        className={`relative flex items-center justify-center w-24 h-24 rounded-full bg-muted transition-colors cursor-pointer ${
-          isHovered ? 'bg-accent' : ''
+        className={`relative flex items-center justify-center w-24 h-24 rounded-full bg-muted transition-all cursor-pointer hover:bg-accent ${
+          isHovered ? 'bg-accent scale-105' : ''
         }`}
         onClick={() => onOpen(bookmark.url)}
       >
@@ -49,13 +49,13 @@ export function BookmarkCard({ bookmark, onOpen, onEdit, onDelete }: BookmarkCar
 
         {/* Kabob menu - appears on hover */}
         {isHovered && (
-          <div className="absolute top-1 right-1" onClick={(e) => e.stopPropagation()}>
-            <DropdownMenu>
+          <div className="absolute top-1 right-1 z-10" onClick={(e) => e.stopPropagation()}>
+            <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 rounded-full hover:bg-background/80"
+                  className="h-8 w-8 rounded-full hover:bg-background/80 text-foreground"
                 >
                   <MoreVertical className="h-4 w-4" />
                 </Button>
