@@ -135,8 +135,24 @@ export async function fetchFavicon(urlString: string): Promise<string | null> {
         return base64;
       } catch (sharpError) {
         console.log('⚠️ Sharp conversion failed:', sharpError);
-        // Clear buffer to try HTML parsing
-        faviconBuffer = null;
+        // Try Google as final fallback for problematic ICO files
+        console.log('🔄 Trying Google favicon service as fallback...');
+        try {
+          const googleUrl = `https://www.google.com/s2/favicons?domain=${new URL(urlString).hostname}&sz=128`;
+          const googleBuffer = await downloadImage(googleUrl);
+          if (googleBuffer && googleBuffer.length >= 200) {
+            console.log(`✅ Got from Google fallback (${googleBuffer.length} bytes)`);
+            // Google returns PNG, so try to process it
+            const pngBuffer = await sharp(googleBuffer)
+              .resize(32, 32, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+              .png()
+              .toBuffer();
+            return `data:image/png;base64,${pngBuffer.toString('base64')}`;
+          }
+        } catch (googleError) {
+          console.log('❌ Google fallback also failed:', googleError);
+        }
+        return null;
       }
     }
     } catch (error) {
