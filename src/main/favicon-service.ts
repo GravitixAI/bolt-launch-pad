@@ -33,11 +33,23 @@ export async function fetchFavicon(urlString: string): Promise<string | null> {
       console.log('❌ Google favicon service failed');
     }
 
-    // Strategy 2: Try /favicon.ico
+    // Strategy 2: Try /favicon.png first (better browser support)
+    if (!faviconBuffer) {
+      try {
+        const faviconUrl = `${baseUrl}/favicon.png`;
+        console.log(`📁 Strategy 2a: Direct PNG favicon: ${faviconUrl}`);
+        faviconBuffer = await downloadImage(faviconUrl);
+        if (faviconBuffer) console.log('✅ Got favicon from /favicon.png');
+      } catch (e) {
+        console.log('❌ Direct favicon.png failed');
+      }
+    }
+
+    // Strategy 2b: Try /favicon.ico (but will try to convert it)
     if (!faviconBuffer) {
       try {
         const faviconUrl = `${baseUrl}/favicon.ico`;
-        console.log(`📁 Strategy 2: Direct favicon: ${faviconUrl}`);
+        console.log(`📁 Strategy 2b: Direct favicon: ${faviconUrl}`);
         faviconBuffer = await downloadImage(faviconUrl);
         if (faviconBuffer) console.log('✅ Got favicon from /favicon.ico');
       } catch (e) {
@@ -88,6 +100,32 @@ export async function fetchFavicon(urlString: string): Promise<string | null> {
 
     // Try to convert to PNG and resize to 32x32
     try {
+      // Detect format first
+      const format = detectImageFormat(faviconBuffer);
+      console.log(`📊 Detected format: ${format}`);
+      
+      // For ICO files, we need special handling since Sharp doesn't support them
+      if (format === 'x-icon') {
+        console.log('🔄 Converting ICO to PNG using fallback method...');
+        // ICO files often contain PNG data inside - try to extract it
+        // For now, return as PNG by forcing Sharp to try anyway with error handling
+        try {
+          // Try to process as if it's PNG (some ICO files contain PNG data)
+          const pngBuffer = await sharp(faviconBuffer, { failOnError: false })
+            .resize(32, 32, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+            .png()
+            .toBuffer();
+          const base64 = `data:image/png;base64,${pngBuffer.toString('base64')}`;
+          console.log('✅ Successfully converted ICO to PNG');
+          return base64;
+        } catch (icoError) {
+          console.log('⚠️ ICO conversion failed, trying to use raw PNG data from ICO');
+          // Return null to trigger alternative download strategies
+          return null;
+        }
+      }
+      
+      // For other formats, use Sharp normally
       const pngBuffer = await sharp(faviconBuffer)
         .resize(32, 32, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
         .png()
@@ -98,17 +136,7 @@ export async function fetchFavicon(urlString: string): Promise<string | null> {
       console.log('✅ Successfully converted favicon to PNG');
       return base64;
     } catch (sharpError) {
-      console.log('⚠️ Sharp conversion failed, trying raw image:', sharpError);
-      
-      // If sharp fails (e.g., ICO format), try to determine format and return as-is
-      // Check magic numbers to detect format
-      const format = detectImageFormat(faviconBuffer);
-      if (format) {
-        const base64 = `data:image/${format};base64,${faviconBuffer.toString('base64')}`;
-        console.log(`✅ Using raw ${format} format`);
-        return base64;
-      }
-      
+      console.log('⚠️ Sharp conversion failed:', sharpError);
       console.log('❌ Could not process favicon');
       return null;
     }
