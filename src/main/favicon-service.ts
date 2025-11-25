@@ -374,6 +374,14 @@ function downloadHTML(url: string): Promise<string | null> {
       if (response.statusCode === 301 || response.statusCode === 302) {
         const redirectUrl = response.headers.location;
         if (redirectUrl) {
+          // Detect Microsoft/SharePoint authentication redirects
+          if (redirectUrl.includes('login.microsoftonline.com') || 
+              redirectUrl.includes('login.microsoft.com') ||
+              redirectUrl.includes('login.windows.net')) {
+            console.log('🔒 Detected authentication redirect - skipping HTML parsing for fallback services');
+            resolve(null);
+            return;
+          }
           console.log('↪️ Following redirect to:', redirectUrl);
           resolve(downloadHTML(redirectUrl));
           return;
@@ -392,6 +400,17 @@ function downloadHTML(url: string): Promise<string | null> {
       response.on('data', (chunk) => {
         html += chunk.toString();
         bytesReceived += chunk.length;
+        
+        // Detect Microsoft/SharePoint login page content
+        if (html.includes('login.microsoftonline.com') || 
+            html.includes('Sign in to your account') ||
+            html.includes('Sign in with your organizational account')) {
+          console.log('🔒 Detected authentication page in HTML - skipping for fallback services');
+          resolve(null);
+          response.destroy();
+          return;
+        }
+        
         // Only need the head section (stop early to save time)
         if (html.includes('</head>')) {
           console.log(`✅ Got HTML head section (${bytesReceived} bytes) - resolving early`);
