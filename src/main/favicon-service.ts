@@ -23,40 +23,42 @@ export async function fetchFavicon(urlString: string): Promise<string | null> {
 
     let faviconBuffer: Buffer | null = null;
 
-    // Strategy 1: Try to parse HTML for favicon link first (most accurate)
+    // Strategy 1: Try Google's favicon service FIRST (fastest and most reliable)
     try {
-      console.log('📄 Strategy 1: Parsing HTML...');
-      const faviconUrl = await findFaviconInHTML(urlString);
-      if (faviconUrl) {
-        console.log(`✅ Found favicon in HTML: ${faviconUrl}`);
-        faviconBuffer = await downloadImage(faviconUrl);
-        if (faviconBuffer) console.log('✅ Downloaded favicon from HTML link');
-      } else {
-        console.log('❌ No favicon link found in HTML');
-      }
+      const googleFaviconUrl = `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=128`;
+      console.log(`🔵 Strategy 1: Google favicon service: ${googleFaviconUrl}`);
+      faviconBuffer = await downloadImage(googleFaviconUrl);
+      if (faviconBuffer) console.log('✅ Got favicon from Google');
     } catch (e) {
-      console.log('❌ HTML parsing failed:', e);
+      console.log('❌ Google favicon service failed');
     }
 
     // Strategy 2: Try /favicon.ico
     if (!faviconBuffer) {
       try {
         const faviconUrl = `${baseUrl}/favicon.ico`;
-        console.log(`Trying direct favicon: ${faviconUrl}`);
+        console.log(`📁 Strategy 2: Direct favicon: ${faviconUrl}`);
         faviconBuffer = await downloadImage(faviconUrl);
+        if (faviconBuffer) console.log('✅ Got favicon from /favicon.ico');
       } catch (e) {
-        console.log('Direct favicon.ico failed');
+        console.log('❌ Direct favicon.ico failed');
       }
     }
 
-    // Strategy 3: Try Google's favicon service with larger size
+    // Strategy 3: Try to parse HTML for favicon link (slowest, but most accurate)
     if (!faviconBuffer) {
       try {
-        const googleFaviconUrl = `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=128`;
-        console.log(`Trying Google favicon service: ${googleFaviconUrl}`);
-        faviconBuffer = await downloadImage(googleFaviconUrl);
+        console.log('📄 Strategy 3: Parsing HTML...');
+        const faviconUrl = await findFaviconInHTML(urlString);
+        if (faviconUrl) {
+          console.log(`✅ Found favicon in HTML: ${faviconUrl}`);
+          faviconBuffer = await downloadImage(faviconUrl);
+          if (faviconBuffer) console.log('✅ Downloaded favicon from HTML link');
+        } else {
+          console.log('❌ No favicon link found in HTML');
+        }
       } catch (e) {
-        console.log('Google favicon service failed');
+        console.log('❌ HTML parsing failed:', e);
       }
     }
 
