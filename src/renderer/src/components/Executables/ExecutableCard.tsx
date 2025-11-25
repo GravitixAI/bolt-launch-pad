@@ -14,22 +14,40 @@ interface ExecutableCardProps {
   onLaunch: (executable: Executable) => void;
   onEdit: (executable: Executable) => void;
   onDelete: (id: string) => void;
+  onDragStart?: (executable: Executable) => void;
+  isDragging?: boolean;
 }
 
-export function ExecutableCard({ executable, onLaunch, onEdit, onDelete }: ExecutableCardProps) {
+export function ExecutableCard({ executable, onLaunch, onEdit, onDelete, onDragStart, isDragging }: ExecutableCardProps) {
   const [isHovered, setIsHovered] = useState(false);
+
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('application/executable-id', executable.id);
+    console.log('🎯 Drag started:', executable.title);
+    if (onDragStart) {
+      onDragStart(executable);
+    }
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    console.log('👋 Drag ended');
+  };
 
   return (
     <div
       className="relative group flex flex-col items-center gap-2 w-24"
+      draggable={true}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Main clickable card */}
       <div
-        className={`relative flex items-center justify-center w-20 h-20 rounded-full bg-muted transition-all cursor-pointer hover:bg-accent hover:shadow-lg hover:ring-2 hover:ring-border dark:hover:shadow-white/20 dark:hover:ring-white/30 dark:hover:brightness-125 ${
+        className={`relative flex items-center justify-center w-20 h-20 rounded-full bg-muted transition-all cursor-move hover:bg-accent hover:shadow-lg hover:ring-2 hover:ring-border dark:hover:shadow-white/20 dark:hover:ring-white/30 dark:hover:brightness-125 ${
           isHovered ? 'bg-accent scale-105 shadow-lg ring-2 ring-border dark:shadow-white/20 dark:ring-white/30 dark:brightness-125' : ''
-        }`}
+        } ${isDragging ? 'opacity-50' : ''}`}
         onClick={() => onLaunch(executable)}
       >
         {/* Icon or fallback */}

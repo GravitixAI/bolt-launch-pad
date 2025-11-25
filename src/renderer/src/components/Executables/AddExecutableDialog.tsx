@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import { TagInput, TagInputRef } from '../ui/tag-input';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 import { Executable } from '../../types';
@@ -13,9 +14,10 @@ interface AddExecutableDialogProps {
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
   executable?: Executable | null;
+  prefilledTag?: string | null;
 }
 
-export function AddExecutableDialog({ open, onOpenChange, onSuccess, executable }: AddExecutableDialogProps) {
+export function AddExecutableDialog({ open, onOpenChange, onSuccess, executable, prefilledTag }: AddExecutableDialogProps) {
   const { userEmail } = useAuth();
   const [loading, setLoading] = useState(false);
   const [extractingIcon, setExtractingIcon] = useState(false);
@@ -24,9 +26,39 @@ export function AddExecutableDialog({ open, onOpenChange, onSuccess, executable 
     executable_path: '',
     parameters: '',
     category: '',
+    tags: '',
     icon: null as string | null,
   });
+  const [showCustomIconUpload, setShowCustomIconUpload] = useState(false);
+  const [existingTags, setExistingTags] = useState<string[]>([]);
+  const tagInputRef = useRef<TagInputRef>(null);
 
+  // Load all existing tags from executables
+  useEffect(() => {
+    const loadExistingTags = async () => {
+      try {
+        const allExecutables = await window.executables.getAll(userEmail || undefined);
+        const tagSet = new Set<string>();
+        
+        allExecutables.forEach(e => {
+          if (e.tags) {
+            const tags = e.tags.split(',').map(t => t.trim()).filter(t => t !== '');
+            tags.forEach(tag => tagSet.add(tag));
+          }
+        });
+        
+        setExistingTags(Array.from(tagSet).sort());
+      } catch (error) {
+        console.error('Failed to load existing tags:', error);
+      }
+    };
+    
+    if (open) {
+      loadExistingTags();
+    }
+  }, [open, userEmail]);
+
+  // Prefill form when editing or adding with tag
   useEffect(() => {
     if (executable) {
       setFormData({
@@ -34,15 +66,27 @@ export function AddExecutableDialog({ open, onOpenChange, onSuccess, executable 
         executable_path: executable.executable_path,
         parameters: executable.parameters || '',
         category: executable.category || '',
+        tags: executable.tags || '',
         icon: executable.icon || null,
       });
     } else {
-      setFormData({ title: '', executable_path: '', parameters: '', category: '', icon: null });
+      setFormData({ 
+        title: '', 
+        executable_path: '', 
+        parameters: '', 
+        category: '', 
+        tags: prefilledTag || '', 
+        icon: null 
+      });
     }
-  }, [executable, open]);
+  }, [executable, prefilledTag, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Commit any pending tag input before submitting (synchronously)
+    const finalTags = tagInputRef.current?.commitPendingTag() || formData.tags;
+    
     if (!formData.title || !formData.executable_path) {
       toast.error('Please fill in required fields');
       return;
@@ -79,6 +123,7 @@ export function AddExecutableDialog({ open, onOpenChange, onSuccess, executable 
           parameters: formData.parameters || undefined,
           icon: icon || undefined,
           category: formData.category || undefined,
+          tags: finalTags || undefined,
           updated_by: userEmail || 'local-user',
         });
         toast.success('Executable updated successfully');
@@ -89,6 +134,7 @@ export function AddExecutableDialog({ open, onOpenChange, onSuccess, executable 
           parameters: formData.parameters || undefined,
           icon: icon || undefined,
           category: formData.category || undefined,
+          tags: finalTags || undefined,
           is_team_level: 0,
           is_personal: 1,
           created_by: userEmail || 'local-user',
@@ -97,7 +143,7 @@ export function AddExecutableDialog({ open, onOpenChange, onSuccess, executable 
         toast.success('Executable created successfully');
       }
 
-      setFormData({ title: '', executable_path: '', parameters: '', category: '', icon: null });
+      setFormData({ title: '', executable_path: '', parameters: '', category: '', tags: '', icon: null });
       onOpenChange(false);
       onSuccess();
     } catch (error) {
@@ -203,10 +249,32 @@ export function AddExecutableDialog({ open, onOpenChange, onSuccess, executable 
                 placeholder="Tools, Games, etc."
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="tags">Tags (Optional)</Label>
+              <TagInput
+                ref={tagInputRef}
+                value={formData.tags}
+                onChange={(tags) => setFormData({ ...formData, tags })}
+                placeholder="Type to search or create tags..."
+                existingTags={existingTags}
+              />
+              <p className="text-xs text-muted-foreground">
+                Type to search existing tags or create new ones. Press Enter/comma to add.
+              </p>
+            </div>
             {formData.icon && (
               <div className="flex items-center gap-2">
                 <Label>Icon Preview:</Label>
-                <img src={formData.icon} alt="Icon" className="w-8 h-8" />
+                <img src={formData.icon} alt="Icon" className="w-8 h-8 rounded-full" />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setFormData({ ...formData, icon: null })}
+                  title="Clear icon"
+                >
+                  Clear Icon
+                </Button>
               </div>
             )}
           </div>
