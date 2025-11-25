@@ -372,16 +372,26 @@ function downloadHTML(url: string): Promise<string | null> {
     const request = protocol.get(url, options, (response) => {
       // Handle redirects
       if (response.statusCode === 301 || response.statusCode === 302) {
-        const redirectUrl = response.headers.location;
+        let redirectUrl = response.headers.location;
         if (redirectUrl) {
           // Detect Microsoft/SharePoint authentication redirects
           if (redirectUrl.includes('login.microsoftonline.com') || 
               redirectUrl.includes('login.microsoft.com') ||
-              redirectUrl.includes('login.windows.net')) {
+              redirectUrl.includes('login.windows.net') ||
+              redirectUrl.includes('/Authenticate.aspx') ||
+              redirectUrl.includes('/_forms/')) {
             console.log('🔒 Detected authentication redirect - skipping HTML parsing for fallback services');
             resolve(null);
             return;
           }
+          
+          // Handle relative redirect URLs
+          if (redirectUrl.startsWith('/')) {
+            const parsedUrl = new URL(url);
+            redirectUrl = `${parsedUrl.protocol}//${parsedUrl.hostname}${redirectUrl}`;
+            console.log('🔗 Resolved relative redirect to:', redirectUrl);
+          }
+          
           console.log('↪️ Following redirect to:', redirectUrl);
           resolve(downloadHTML(redirectUrl));
           return;
