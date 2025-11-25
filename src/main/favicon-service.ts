@@ -91,13 +91,30 @@ export async function fetchFavicon(urlString: string): Promise<string | null> {
       }
     }
 
-    // Strategy 4: Google favicon service (last resort)
+    // Strategy 4: icon.horse service (great for auth-protected sites)
     if (!faviconBuffer) {
       try {
-        const googleUrl = `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=128`;
-        console.log(`🔵 Strategy 4: Google favicon service`);
-        const buffer = await downloadImage(googleUrl);
+        const iconHorseUrl = `https://icon.horse/icon/${url.hostname}`;
+        console.log(`🐴 Strategy 4: icon.horse service`);
+        const buffer = await downloadImage(iconHorseUrl);
         if (buffer && buffer.length >= 200) {
+          console.log(`✅ Got from icon.horse (${buffer.length} bytes)`);
+          faviconBuffer = buffer;
+        } else if (buffer) {
+          console.log(`⚠️ icon.horse icon too small (${buffer.length} bytes)`);
+        }
+      } catch (e) {
+        console.log('❌ icon.horse failed');
+      }
+    }
+
+    // Strategy 5: Google favicon service (final fallback)
+    if (!faviconBuffer) {
+      try {
+        const googleUrl = `https://www.google.com/s2/favicons?sz=64&domain=${url.hostname}`;
+        console.log(`🔵 Strategy 5: Google favicon service`);
+        const buffer = await downloadImage(googleUrl);
+        if (buffer && buffer.length >= 100) {
           // Google service returns smaller but valid PNGs
           console.log(`✅ Got from Google (${buffer.length} bytes)`);
           faviconBuffer = buffer;
@@ -110,7 +127,7 @@ export async function fetchFavicon(urlString: string): Promise<string | null> {
     }
 
     if (!faviconBuffer) {
-      console.log('No favicon found for:', urlString);
+      console.log('❌ No favicon found for:', urlString);
       return null;
     }
 
