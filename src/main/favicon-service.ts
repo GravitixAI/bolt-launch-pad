@@ -98,47 +98,33 @@ export async function fetchFavicon(urlString: string): Promise<string | null> {
       return null;
     }
 
-    // Try to convert to PNG and resize to 32x32
-    try {
-      // Detect format first
-      const format = detectImageFormat(faviconBuffer);
-      console.log(`📊 Detected format: ${format}`);
-      
-      // For ICO files, we need special handling since Sharp doesn't support them
-      if (format === 'x-icon') {
-        console.log('🔄 Converting ICO to PNG using fallback method...');
-        // ICO files often contain PNG data inside - try to extract it
-        // For now, return as PNG by forcing Sharp to try anyway with error handling
-        try {
-          // Try to process as if it's PNG (some ICO files contain PNG data)
-          const pngBuffer = await sharp(faviconBuffer, { failOnError: false })
-            .resize(32, 32, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-            .png()
-            .toBuffer();
-          const base64 = `data:image/png;base64,${pngBuffer.toString('base64')}`;
-          console.log('✅ Successfully converted ICO to PNG');
-          return base64;
-        } catch (icoError) {
-          console.log('⚠️ ICO conversion failed, trying to use raw PNG data from ICO');
-          // Return null to trigger alternative download strategies
-          return null;
-        }
-      }
-      
-      // For other formats, use Sharp normally
-      const pngBuffer = await sharp(faviconBuffer)
-        .resize(32, 32, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-        .png()
-        .toBuffer();
+    // Detect format first
+    const format = detectImageFormat(faviconBuffer);
+    console.log(`📊 Detected format: ${format}`);
+    
+    // For ICO files, skip Sharp and continue to HTML parsing (which will find PNG versions)
+    if (format === 'x-icon') {
+      console.log('⚠️ ICO format detected - skipping to HTML parsing for PNG version');
+      faviconBuffer = null; // Clear to trigger HTML parsing strategy below
+    }
+    
+    // Try to convert to PNG and resize to 32x32 (if we have a buffer)
+    if (faviconBuffer) {
+      try {
+        const pngBuffer = await sharp(faviconBuffer)
+          .resize(32, 32, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+          .png()
+          .toBuffer();
 
-      // Convert to base64
-      const base64 = `data:image/png;base64,${pngBuffer.toString('base64')}`;
-      console.log('✅ Successfully converted favicon to PNG');
-      return base64;
-    } catch (sharpError) {
-      console.log('⚠️ Sharp conversion failed:', sharpError);
-      console.log('❌ Could not process favicon');
-      return null;
+        // Convert to base64
+        const base64 = `data:image/png;base64,${pngBuffer.toString('base64')}`;
+        console.log('✅ Successfully converted favicon to PNG');
+        return base64;
+      } catch (sharpError) {
+        console.log('⚠️ Sharp conversion failed:', sharpError);
+        // Clear buffer to try HTML parsing
+        faviconBuffer = null;
+      }
     }
     } catch (error) {
       console.error('Error fetching favicon:', error);
