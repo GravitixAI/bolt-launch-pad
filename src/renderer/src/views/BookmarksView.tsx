@@ -120,41 +120,10 @@ export function BookmarksView() {
   return (
     <div className="p-8">
       <div className="max-w-7xl mx-auto space-y-8">
-        {/* Tagged Groups */}
-        {tagNames.map((tag) => (
-          <div key={tag}>
-            <h2 className="text-xl font-semibold mb-4 text-foreground capitalize">{tag}</h2>
-            <div className="flex flex-wrap gap-6">
-              {groups[tag].map((bookmark) => (
-                <BookmarkCard
-                  key={bookmark.id}
-                  bookmark={bookmark}
-                  onOpen={handleOpenBookmark}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                />
-              ))}
-              
-              {/* Add Shortcut Button for this tag */}
-              <div
-                className="flex flex-col items-center gap-2 w-24 cursor-pointer"
-                onClick={() => handleAddWithTag(tag)}
-              >
-                <div className="flex items-center justify-center w-20 h-20 rounded-full bg-muted hover:bg-accent hover:scale-105 hover:shadow-lg hover:ring-2 hover:ring-border dark:hover:shadow-white/20 dark:hover:ring-white/30 dark:hover:brightness-125 transition-all">
-                  <Plus className="w-6 h-6 text-muted-foreground" />
-                </div>
-                <span className="text-sm text-center text-foreground">Add shortcut</span>
-              </div>
-            </div>
-          </div>
-        ))}
-
-        {/* Untagged Bookmarks */}
+        {/* General (Untagged) Section - Always first */}
         {untagged.length > 0 && (
           <div>
-            <h2 className="text-xl font-semibold mb-4 text-foreground">
-              {tagNames.length > 0 ? 'Other' : 'All Shortcuts'}
-            </h2>
+            <h2 className="text-xl font-semibold mb-4 text-foreground">General</h2>
             <div className="flex flex-wrap gap-6">
               {untagged.map((bookmark) => (
                 <BookmarkCard
@@ -184,21 +153,53 @@ export function BookmarksView() {
           </div>
         )}
 
-        {/* Add Shortcut Button - Only visible when no bookmarks at all */}
-        {bookmarks.length === 0 && (
-          <div className="flex flex-wrap gap-6">
-            <div
-              className="flex flex-col items-center gap-2 w-24 cursor-pointer"
-              onClick={() => {
-                setEditingBookmark(null);
-                setPrefilledTag(null);
-                setAddDialogOpen(true);
-              }}
-            >
-              <div className="flex items-center justify-center w-20 h-20 rounded-full bg-muted hover:bg-accent hover:scale-105 hover:shadow-lg hover:ring-2 hover:ring-border dark:hover:shadow-white/20 dark:hover:ring-white/30 dark:hover:brightness-125 transition-all">
-                <Plus className="w-6 h-6 text-muted-foreground" />
+        {/* Tagged Groups - Alphabetically sorted */}
+        {tagNames.map((tag) => (
+          <div key={tag}>
+            <h2 className="text-xl font-semibold mb-4 text-foreground capitalize">{tag}</h2>
+            <div className="flex flex-wrap gap-6">
+              {groups[tag].map((bookmark) => (
+                <BookmarkCard
+                  key={bookmark.id}
+                  bookmark={bookmark}
+                  onOpen={handleOpenBookmark}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                />
+              ))}
+              
+              {/* Add Shortcut Button for this tag */}
+              <div
+                className="flex flex-col items-center gap-2 w-24 cursor-pointer"
+                onClick={() => handleAddWithTag(tag)}
+              >
+                <div className="flex items-center justify-center w-20 h-20 rounded-full bg-muted hover:bg-accent hover:scale-105 hover:shadow-lg hover:ring-2 hover:ring-border dark:hover:shadow-white/20 dark:hover:ring-white/30 dark:hover:brightness-125 transition-all">
+                  <Plus className="w-6 h-6 text-muted-foreground" />
+                </div>
+                <span className="text-sm text-center text-foreground">Add shortcut</span>
               </div>
-              <span className="text-sm text-center text-foreground">Add shortcut</span>
+            </div>
+          </div>
+        ))}
+
+        {/* Empty state when no bookmarks at all */}
+        {bookmarks.length === 0 && (
+          <div>
+            <h2 className="text-xl font-semibold mb-4 text-foreground">General</h2>
+            <div className="flex flex-wrap gap-6">
+              <div
+                className="flex flex-col items-center gap-2 w-24 cursor-pointer"
+                onClick={() => {
+                  setEditingBookmark(null);
+                  setPrefilledTag(null);
+                  setAddDialogOpen(true);
+                }}
+              >
+                <div className="flex items-center justify-center w-20 h-20 rounded-full bg-muted hover:bg-accent hover:scale-105 hover:shadow-lg hover:ring-2 hover:ring-border dark:hover:shadow-white/20 dark:hover:ring-white/30 dark:hover:brightness-125 transition-all">
+                  <Plus className="w-6 h-6 text-muted-foreground" />
+                </div>
+                <span className="text-sm text-center text-foreground">Add shortcut</span>
+              </div>
             </div>
           </div>
         )}
