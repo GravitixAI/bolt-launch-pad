@@ -63,7 +63,7 @@ export function ScriptCard({ script, onExecute, onEdit, onDelete }: ScriptCardPr
                   <Pencil className="mr-2 h-4 w-4" />
                   Edit shortcut
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onDelete(script.id)} className="text-destructive">
+                <DropdownMenuItem onClick={() => onDelete(script.id)} className="text-destructive dark:text-red-400">
                   <Trash2 className="mr-2 h-4 w-4" />
                   Remove
                 </DropdownMenuItem>

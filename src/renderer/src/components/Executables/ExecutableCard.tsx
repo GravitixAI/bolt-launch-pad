@@ -65,7 +65,7 @@ export function ExecutableCard({ executable, onLaunch, onEdit, onDelete }: Execu
                   <Pencil className="mr-2 h-4 w-4" />
                   Edit shortcut
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onDelete(executable.id)} className="text-destructive">
+                <DropdownMenuItem onClick={() => onDelete(executable.id)} className="text-destructive dark:text-red-400">
                   <Trash2 className="mr-2 h-4 w-4" />
                   Remove
                 </DropdownMenuItem>
