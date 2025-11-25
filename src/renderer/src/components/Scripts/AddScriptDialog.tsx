@@ -47,6 +47,24 @@ export function AddScriptDialog({ open, onOpenChange, onSuccess, script }: AddSc
 
     setLoading(true);
     try {
+      // Check for duplicate script (by title or exact content match, unless editing the same script)
+      if (!script) {
+        const allScripts = await window.scripts.getAll(userEmail || undefined);
+        const duplicateByTitle = allScripts.find(s => s.title.toLowerCase() === formData.title.toLowerCase());
+        const duplicateByContent = allScripts.find(s => s.script_content === formData.script_content);
+        
+        if (duplicateByTitle) {
+          toast.error(`A script with this title already exists: "${duplicateByTitle.title}"`);
+          setLoading(false);
+          return;
+        }
+        if (duplicateByContent) {
+          toast.error(`A script with identical content already exists: "${duplicateByContent.title}"`);
+          setLoading(false);
+          return;
+        }
+      }
+
       // Get default icon based on script type
       const icon = formData.script_type === 'powershell' 
         ? await window.system.getDefaultPowerShellIcon()

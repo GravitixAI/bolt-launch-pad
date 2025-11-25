@@ -50,6 +50,20 @@ export function AddExecutableDialog({ open, onOpenChange, onSuccess, executable 
 
     setLoading(true);
     try {
+      // Check for duplicate executable path (unless editing the same executable)
+      if (!executable) {
+        const allExecutables = await window.executables.getAll(userEmail || undefined);
+        const duplicate = allExecutables.find(
+          e => e.executable_path.toLowerCase() === formData.executable_path.toLowerCase() &&
+               (e.parameters || '') === (formData.parameters || '')
+        );
+        if (duplicate) {
+          toast.error(`An executable with this path already exists: "${duplicate.title}"`);
+          setLoading(false);
+          return;
+        }
+      }
+
       // Extract icon if not already extracted
       let icon = formData.icon;
       if (!icon && formData.executable_path) {

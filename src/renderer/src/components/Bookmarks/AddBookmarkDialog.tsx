@@ -48,6 +48,17 @@ export function AddBookmarkDialog({ open, onOpenChange, onSuccess, bookmark }: A
 
     setLoading(true);
     try {
+      // Check for duplicate URL (unless editing the same bookmark)
+      if (!bookmark) {
+        const allBookmarks = await window.bookmarks.getAll(userEmail || undefined);
+        const duplicate = allBookmarks.find(b => b.url.toLowerCase() === formData.url.toLowerCase());
+        if (duplicate) {
+          toast.error(`A bookmark with this URL already exists: "${duplicate.title}"`);
+          setLoading(false);
+          return;
+        }
+      }
+
       // Fetch favicon if not already fetched (but don't fail if it errors)
       let favicon = formData.favicon;
       if (!favicon && formData.url) {
