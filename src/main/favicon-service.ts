@@ -23,73 +23,66 @@ export async function fetchFavicon(urlString: string): Promise<string | null> {
 
     let faviconBuffer: Buffer | null = null;
 
-    // Strategy 1: Try Google's favicon service FIRST (fastest and most reliable)
-    try {
-      const googleFaviconUrl = `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=128`;
-      console.log(`🔵 Strategy 1: Google favicon service: ${googleFaviconUrl}`);
-      faviconBuffer = await downloadImage(googleFaviconUrl);
-      if (faviconBuffer) console.log('✅ Got favicon from Google');
-    } catch (e) {
-      console.log('❌ Google favicon service failed');
-    }
-
-    // Strategy 2: Try /favicon.png first (better browser support)
-    if (!faviconBuffer) {
+    // Strategy 1: Apple Touch Icons (HIGHEST PRIORITY - what browsers actually use)
+    // These are high-res (120-180px) and widely supported
+    const appleTouchPaths = [
+      `${baseUrl}/apple-touch-icon.png`,
+      `${baseUrl}/apple-touch-icon-180x180.png`,
+      `${baseUrl}/apple-touch-icon-152x152.png`,
+      `${baseUrl}/apple-touch-icon-precomposed.png`,
+      `${baseUrl}/apple-touch-icon-120x120.png`,
+    ];
+    
+    for (const applePath of appleTouchPaths) {
+      if (faviconBuffer) break;
       try {
-        const faviconUrl = `${baseUrl}/favicon.png`;
-        console.log(`📁 Strategy 2a: Direct PNG favicon: ${faviconUrl}`);
-        faviconBuffer = await downloadImage(faviconUrl);
-        if (faviconBuffer) console.log('✅ Got favicon from /favicon.png');
+        console.log(`🍎 Strategy 1: Apple Touch Icon: ${applePath}`);
+        faviconBuffer = await downloadImage(applePath);
+        if (faviconBuffer) {
+          console.log('✅ Got Apple Touch Icon');
+          break;
+        }
       } catch (e) {
-        console.log('❌ Direct favicon.png failed');
+        // Try next path
       }
     }
 
-    // Strategy 2b: Try /favicon.ico (but will try to convert it)
+    // Strategy 2: Parse HTML for <link rel="icon"> (what browsers check second)
+    if (!faviconBuffer) {
+      try {
+        console.log('📄 Strategy 2: Parsing HTML for <link rel="icon">...');
+        const faviconUrl = await findFaviconInHTML(urlString);
+        if (faviconUrl) {
+          console.log(`✅ Found in HTML: ${faviconUrl}`);
+          faviconBuffer = await downloadImage(faviconUrl);
+          if (faviconBuffer) console.log('✅ Downloaded from HTML link');
+        }
+      } catch (e) {
+        console.log('❌ HTML parsing failed');
+      }
+    }
+
+    // Strategy 3: Root /favicon.ico (legacy fallback)
     if (!faviconBuffer) {
       try {
         const faviconUrl = `${baseUrl}/favicon.ico`;
-        console.log(`📁 Strategy 2b: Direct favicon: ${faviconUrl}`);
+        console.log(`📁 Strategy 3: Root /favicon.ico`);
         faviconBuffer = await downloadImage(faviconUrl);
-        if (faviconBuffer) console.log('✅ Got favicon from /favicon.ico');
+        if (faviconBuffer) console.log('✅ Got /favicon.ico');
       } catch (e) {
-        console.log('❌ Direct favicon.ico failed');
+        console.log('❌ /favicon.ico not found');
       }
     }
 
-    // Strategy 3: Try to parse HTML for favicon link (slowest, but most accurate)
+    // Strategy 4: Google favicon service (last resort)
     if (!faviconBuffer) {
       try {
-        console.log('📄 Strategy 3: Parsing HTML...');
-        const faviconUrl = await findFaviconInHTML(urlString);
-        if (faviconUrl) {
-          console.log(`✅ Found favicon in HTML: ${faviconUrl}`);
-          faviconBuffer = await downloadImage(faviconUrl);
-          if (faviconBuffer) console.log('✅ Downloaded favicon from HTML link');
-        } else {
-          console.log('❌ No favicon link found in HTML');
-        }
+        const googleUrl = `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=128`;
+        console.log(`🔵 Strategy 4: Google favicon service`);
+        faviconBuffer = await downloadImage(googleUrl);
+        if (faviconBuffer) console.log('✅ Got from Google');
       } catch (e) {
-        console.log('❌ HTML parsing failed:', e);
-      }
-    }
-
-    // Strategy 4: Try alternative favicon locations
-    if (!faviconBuffer) {
-      const alternativeLocations = [
-        `${baseUrl}/favicon.png`,
-        `${baseUrl}/apple-touch-icon.png`,
-        `${baseUrl}/apple-touch-icon-precomposed.png`,
-      ];
-      
-      for (const location of alternativeLocations) {
-        try {
-          console.log(`Trying alternative location: ${location}`);
-          faviconBuffer = await downloadImage(location);
-          if (faviconBuffer) break;
-        } catch (e) {
-          continue;
-        }
+        console.log('❌ Google failed');
       }
     }
 
