@@ -136,27 +136,43 @@ export async function fetchFavicon(urlString: string): Promise<string | null> {
       } catch (sharpError) {
         console.error('⚠️ Sharp conversion failed:', sharpError);
         console.error('📍 Catch block entered - attempting Google fallback');
-        // Try Google as final fallback for problematic ICO files
-        console.log('🔄 Trying Google favicon service as fallback...');
+        // Try multiple fallback services for problematic ICO files
+        console.log('🔄 Trying fallback favicon services...');
+        
+        // Try icon.horse first (often more reliable)
         try {
-          const googleUrl = `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=128`;
-          console.log(`🔗 Google URL: ${googleUrl}`);
+          const iconHorseUrl = `https://icon.horse/icon/${url.hostname}`;
+          console.log(`🐴 Trying icon.horse: ${iconHorseUrl}`);
+          const iconHorseBuffer = await downloadImage(iconHorseUrl);
+          console.log(`📦 Icon.horse buffer: ${iconHorseBuffer ? iconHorseBuffer.length : 'NULL'} bytes`);
+          if (iconHorseBuffer && iconHorseBuffer.length >= 200) {
+            const pngBuffer = await sharp(iconHorseBuffer)
+              .resize(32, 32, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+              .png()
+              .toBuffer();
+            console.log('✅ Icon.horse fallback succeeded');
+            return `data:image/png;base64,${pngBuffer.toString('base64')}`;
+          }
+        } catch (iconHorseError) {
+          console.log('❌ Icon.horse failed:', iconHorseError.message);
+        }
+        
+        // Try Google as secondary fallback
+        try {
+          const googleUrl = `https://www.google.com/s2/favicons?sz=64&domain=${url.hostname}`;
+          console.log(`🔵 Trying Google: ${googleUrl}`);
           const googleBuffer = await downloadImage(googleUrl);
-          console.log(`📦 Google buffer size: ${googleBuffer ? googleBuffer.length : 'NULL'}`);
-          if (googleBuffer && googleBuffer.length >= 200) {
-            console.log(`✅ Got from Google fallback (${googleBuffer.length} bytes)`);
-            // Google returns PNG, so try to process it
+          console.log(`📦 Google buffer: ${googleBuffer ? googleBuffer.length : 'NULL'} bytes`);
+          if (googleBuffer && googleBuffer.length >= 100) { // Google returns smaller files
             const pngBuffer = await sharp(googleBuffer)
               .resize(32, 32, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
               .png()
               .toBuffer();
-            console.log('✅ Google fallback PNG conversion succeeded');
+            console.log('✅ Google fallback succeeded');
             return `data:image/png;base64,${pngBuffer.toString('base64')}`;
-          } else {
-            console.log('⚠️ Google buffer too small or null');
           }
         } catch (googleError) {
-          console.error('❌ Google fallback also failed:', googleError);
+          console.log('❌ Google failed:', googleError.message);
         }
         console.log('❌ Returning null from Sharp catch block');
         return null;
