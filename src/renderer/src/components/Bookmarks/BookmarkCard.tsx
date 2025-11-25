@@ -21,13 +21,13 @@ export function BookmarkCard({ bookmark, onOpen, onEdit, onDelete }: BookmarkCar
 
   return (
     <div
-      className="relative group flex flex-col items-center gap-2 w-28"
+      className="relative group flex flex-col items-center gap-2 w-24"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Main clickable card */}
       <div
-        className={`relative flex items-center justify-center w-24 h-24 rounded-full bg-muted transition-all cursor-pointer hover:bg-accent hover:shadow-lg hover:ring-2 hover:ring-border dark:hover:shadow-white/20 dark:hover:ring-white/30 dark:hover:brightness-125 ${
+        className={`relative flex items-center justify-center w-20 h-20 rounded-full bg-muted transition-all cursor-pointer hover:bg-accent hover:shadow-lg hover:ring-2 hover:ring-border dark:hover:shadow-white/20 dark:hover:ring-white/30 dark:hover:brightness-125 ${
           isHovered ? 'bg-accent scale-105 shadow-lg ring-2 ring-border dark:shadow-white/20 dark:ring-white/30 dark:brightness-125' : ''
         }`}
         onClick={() => onOpen(bookmark.url)}
@@ -37,11 +37,11 @@ export function BookmarkCard({ bookmark, onOpen, onEdit, onDelete }: BookmarkCar
           <img
             src={bookmark.favicon}
             alt={bookmark.title}
-            className="w-12 h-12 object-contain"
+            className="w-8 h-8 object-contain"
           />
         ) : (
-          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-            <span className="text-2xl font-semibold text-primary">
+          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+            <span className="text-xl font-semibold text-primary">
               {bookmark.title.charAt(0).toUpperCase()}
             </span>
           </div>
