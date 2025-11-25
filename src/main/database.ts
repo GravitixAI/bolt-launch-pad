@@ -50,6 +50,35 @@ export function initializeDatabase() {
     );
   `);
 
+  // Migration: Add tags column to existing tables if they don't have it
+  try {
+    // Check if bookmarks table has tags column
+    const bookmarksInfo = db.prepare("PRAGMA table_info(bookmarks)").all() as any[];
+    const hasBookmarksTags = bookmarksInfo.some(col => col.name === 'tags');
+    if (!hasBookmarksTags && bookmarksInfo.length > 0) {
+      console.log('📊 Adding tags column to bookmarks table...');
+      db.exec('ALTER TABLE bookmarks ADD COLUMN tags TEXT');
+    }
+
+    // Check if executables table has tags column
+    const executablesInfo = db.prepare("PRAGMA table_info(executables)").all() as any[];
+    const hasExecutablesTags = executablesInfo.some(col => col.name === 'tags');
+    if (!hasExecutablesTags && executablesInfo.length > 0) {
+      console.log('📊 Adding tags column to executables table...');
+      db.exec('ALTER TABLE executables ADD COLUMN tags TEXT');
+    }
+
+    // Check if scripts table has tags column
+    const scriptsInfo = db.prepare("PRAGMA table_info(scripts)").all() as any[];
+    const hasScriptsTags = scriptsInfo.some(col => col.name === 'tags');
+    if (!hasScriptsTags && scriptsInfo.length > 0) {
+      console.log('📊 Adding tags column to scripts table...');
+      db.exec('ALTER TABLE scripts ADD COLUMN tags TEXT');
+    }
+  } catch (error) {
+    console.error('Migration error:', error);
+  }
+
   // Bookmarks table
   db.exec(`
     CREATE TABLE IF NOT EXISTS bookmarks (
