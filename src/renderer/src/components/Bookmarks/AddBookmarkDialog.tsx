@@ -59,19 +59,8 @@ export function AddBookmarkDialog({ open, onOpenChange, onSuccess, bookmark }: A
         }
       }
 
-      // Fetch favicon if not already fetched (but don't fail if it errors)
-      let favicon = formData.favicon;
-      if (!favicon && formData.url) {
-        try {
-          setFetchingFavicon(true);
-          favicon = await window.system.getFavicon(formData.url);
-          setFetchingFavicon(false);
-        } catch (faviconError) {
-          console.warn('Failed to fetch favicon, continuing without it:', faviconError);
-          setFetchingFavicon(false);
-          // Continue without favicon - it's optional
-        }
-      }
+      // Use the favicon from form data (user can fetch it with "Get Icon" button)
+      const favicon = formData.favicon;
 
       if (bookmark) {
         // Update existing bookmark
@@ -118,16 +107,18 @@ export function AddBookmarkDialog({ open, onOpenChange, onSuccess, bookmark }: A
 
     setFetchingFavicon(true);
     try {
+      console.log('Fetching favicon for:', formData.url);
       const favicon = await window.system.getFavicon(formData.url);
+      console.log('Favicon result:', favicon ? 'Success' : 'No favicon found');
       setFormData({ ...formData, favicon });
       if (favicon) {
         toast.success('Favicon fetched successfully');
       } else {
-        toast.info('No favicon found for this URL');
+        toast.warning('No favicon found - using letter placeholder');
       }
     } catch (error) {
       console.error('Failed to fetch favicon:', error);
-      toast.error('Failed to fetch favicon');
+      toast.error(`Failed to fetch favicon: ${error}`);
     } finally {
       setFetchingFavicon(false);
     }
@@ -153,17 +144,29 @@ export function AddBookmarkDialog({ open, onOpenChange, onSuccess, bookmark }: A
             </div>
             <div className="space-y-2">
               <Label htmlFor="url">URL</Label>
-              <Input
-                id="url"
-                type="url"
-                value={formData.url}
-                onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                placeholder="https://example.com"
-                required
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="url"
+                  type="url"
+                  value={formData.url}
+                  onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                  placeholder="https://example.com"
+                  required
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleFetchFavicon}
+                  disabled={fetchingFavicon || !formData.url}
+                >
+                  {fetchingFavicon ? 'Fetching...' : 'Get Icon'}
+                </Button>
+              </div>
             </div>
             {formData.favicon && (
               <div className="flex items-center gap-2">
+                <Label>Icon Preview:</Label>
                 <img src={formData.favicon} alt="Favicon" className="w-8 h-8" />
               </div>
             )}
