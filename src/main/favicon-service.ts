@@ -7,47 +7,74 @@ import sharp from 'sharp';
  * Fetch favicon from URL and convert to base64
  */
 export async function fetchFavicon(urlString: string): Promise<string | null> {
-  try {
-    const url = new URL(urlString);
-    const baseUrl = `${url.protocol}//${url.hostname}`;
+  // Add overall timeout of 10 seconds
+  const timeoutPromise = new Promise<null>((resolve) => {
+    setTimeout(() => {
+      console.log('Favicon fetch timeout for:', urlString);
+      resolve(null);
+    }, 10000);
+  });
 
-    // Strategy 1: Try /favicon.ico
-    let faviconUrl = `${baseUrl}/favicon.ico`;
-    let faviconBuffer = await downloadImage(faviconUrl);
+  const fetchPromise = (async () => {
+    try {
+      const url = new URL(urlString);
+      const baseUrl = `${url.protocol}//${url.hostname}`;
 
-    if (!faviconBuffer) {
-      // Strategy 2: Try to parse HTML for favicon link
-      faviconUrl = await findFaviconInHTML(urlString);
-      if (faviconUrl) {
-        faviconBuffer = await downloadImage(faviconUrl);
+      let faviconBuffer: Buffer | null = null;
+
+      // Strategy 1: Use Google's favicon service first (most reliable)
+      try {
+        const googleFaviconUrl = `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=64`;
+        faviconBuffer = await downloadImage(googleFaviconUrl);
+      } catch (e) {
+        console.log('Google favicon service failed, trying other methods');
       }
-    }
 
-    if (!faviconBuffer) {
-      // Strategy 3: Use Google's favicon service as fallback
-      faviconUrl = `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=64`;
-      faviconBuffer = await downloadImage(faviconUrl);
-    }
+      // Strategy 2: Try /favicon.ico
+      if (!faviconBuffer) {
+        try {
+          const faviconUrl = `${baseUrl}/favicon.ico`;
+          faviconBuffer = await downloadImage(faviconUrl);
+        } catch (e) {
+          console.log('Direct favicon.ico failed');
+        }
+      }
 
-    if (!faviconBuffer) {
-      console.log('No favicon found for:', urlString);
+      // Strategy 3: Try to parse HTML for favicon link
+      if (!faviconBuffer) {
+        try {
+          const faviconUrl = await findFaviconInHTML(urlString);
+          if (faviconUrl) {
+            faviconBuffer = await downloadImage(faviconUrl);
+          }
+        } catch (e) {
+          console.log('HTML parsing for favicon failed');
+        }
+      }
+
+      if (!faviconBuffer) {
+        console.log('No favicon found for:', urlString);
+        return null;
+      }
+
+      // Convert to PNG and resize to 32x32
+      const pngBuffer = await sharp(faviconBuffer)
+        .resize(32, 32, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+        .png()
+        .toBuffer();
+
+      // Convert to base64
+      const base64 = `data:image/png;base64,${pngBuffer.toString('base64')}`;
+      
+      return base64;
+    } catch (error) {
+      console.error('Error fetching favicon:', error);
       return null;
     }
+  })();
 
-    // Convert to PNG and resize to 32x32
-    const pngBuffer = await sharp(faviconBuffer)
-      .resize(32, 32, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-      .png()
-      .toBuffer();
-
-    // Convert to base64
-    const base64 = `data:image/png;base64,${pngBuffer.toString('base64')}`;
-    
-    return base64;
-  } catch (error) {
-    console.error('Error fetching favicon:', error);
-    return null;
-  }
+  // Race between fetch and timeout
+  return Promise.race([fetchPromise, timeoutPromise]);
 }
 
 /**
