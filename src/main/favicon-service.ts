@@ -154,17 +154,21 @@ async function findFaviconInHTML(urlString: string): Promise<string | null> {
     if (!html) return null;
 
     // Look for various types of icon links in HTML
+    // Try to find the largest or most standard icon
     const iconPatterns = [
-      // Standard favicon
+      // Standard icon with sizes (prefer 32x32, 96x96, or larger)
+      /<link[^>]*rel=["']icon["'][^>]*sizes=["'](?:32x32|96x96|128x128|192x192)["'][^>]*href=["']([^"']+)["']/i,
+      /<link[^>]*rel=["']icon["'][^>]*href=["']([^"']+)["'][^>]*sizes=["'](?:32x32|96x96|128x128|192x192)["']/i,
+      // Any icon with type image/png
+      /<link[^>]*rel=["']icon["'][^>]*type=["']image\/png["'][^>]*href=["']([^"']+)["']/i,
+      /<link[^>]*type=["']image\/png["'][^>]*href=["']([^"']+)["'][^>]*rel=["']icon["']/i,
+      // Standard favicon (any size)
       /<link[^>]*rel=["'](?:shortcut )?icon["'][^>]*href=["']([^"']+)["']/i,
       // Reverse order (href before rel)
       /<link[^>]*href=["']([^"']+)["'][^>]*rel=["'](?:shortcut )?icon["']/i,
-      // Apple touch icon
+      // Apple touch icon as fallback (prefer larger sizes)
+      /<link[^>]*rel=["']apple-touch-icon["'][^>]*sizes=["'](?:120x120|144x144|152x152|180x180)["'][^>]*href=["']([^"']+)["']/i,
       /<link[^>]*rel=["']apple-touch-icon[^"']*["'][^>]*href=["']([^"']+)["']/i,
-      // Reverse apple touch icon
-      /<link[^>]*href=["']([^"']+)["'][^>]*rel=["']apple-touch-icon[^"']*["']/i,
-      // PNG icon specifically
-      /<link[^>]*type=["']image\/png["'][^>]*href=["']([^"']+)["']/i,
     ];
 
     for (const pattern of iconPatterns) {
