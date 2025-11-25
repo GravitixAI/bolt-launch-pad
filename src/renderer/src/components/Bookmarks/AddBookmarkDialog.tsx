@@ -59,8 +59,24 @@ export function AddBookmarkDialog({ open, onOpenChange, onSuccess, bookmark }: A
         }
       }
 
-      // Use the favicon from form data (user can fetch it with "Get Icon" button)
-      const favicon = formData.favicon;
+      // Try to fetch favicon if not already fetched
+      let favicon = formData.favicon;
+      if (!favicon && formData.url && !bookmark) {
+        try {
+          console.log('Auto-fetching favicon during save...');
+          setFetchingFavicon(true);
+          favicon = await window.system.getFavicon(formData.url);
+          console.log('Auto-fetch result:', favicon ? 'Success' : 'Failed');
+          setFetchingFavicon(false);
+          if (!favicon) {
+            console.log('No favicon found, continuing with letter placeholder');
+          }
+        } catch (faviconError) {
+          console.warn('Failed to auto-fetch favicon:', faviconError);
+          setFetchingFavicon(false);
+          // Continue without favicon - it's optional
+        }
+      }
 
       if (bookmark) {
         // Update existing bookmark
@@ -159,10 +175,14 @@ export function AddBookmarkDialog({ open, onOpenChange, onSuccess, bookmark }: A
                   variant="secondary"
                   onClick={handleFetchFavicon}
                   disabled={fetchingFavicon || !formData.url}
+                  title="Manually fetch the site's favicon"
                 >
                   {fetchingFavicon ? 'Fetching...' : 'Get Icon'}
                 </Button>
               </div>
+              <p className="text-xs text-muted-foreground">
+                Icon will be fetched automatically when you click Done, or click "Get Icon" to preview first
+              </p>
             </div>
             {formData.favicon && (
               <div className="flex items-center gap-2">
