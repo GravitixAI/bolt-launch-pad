@@ -81,12 +81,13 @@ export async function fetchFavicon(urlString: string): Promise<string | null> {
       }
     }
 
-      if (!faviconBuffer) {
-        console.log('No favicon found for:', urlString);
-        return null;
-      }
+    if (!faviconBuffer) {
+      console.log('No favicon found for:', urlString);
+      return null;
+    }
 
-      // Convert to PNG and resize to 32x32
+    // Try to convert to PNG and resize to 32x32
+    try {
       const pngBuffer = await sharp(faviconBuffer)
         .resize(32, 32, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
         .png()
@@ -94,8 +95,23 @@ export async function fetchFavicon(urlString: string): Promise<string | null> {
 
       // Convert to base64
       const base64 = `data:image/png;base64,${pngBuffer.toString('base64')}`;
-      
+      console.log('✅ Successfully converted favicon to PNG');
       return base64;
+    } catch (sharpError) {
+      console.log('⚠️ Sharp conversion failed, trying raw image:', sharpError);
+      
+      // If sharp fails (e.g., ICO format), try to determine format and return as-is
+      // Check magic numbers to detect format
+      const format = detectImageFormat(faviconBuffer);
+      if (format) {
+        const base64 = `data:image/${format};base64,${faviconBuffer.toString('base64')}`;
+        console.log(`✅ Using raw ${format} format`);
+        return base64;
+      }
+      
+      console.log('❌ Could not process favicon');
+      return null;
+    }
     } catch (error) {
       console.error('Error fetching favicon:', error);
       return null;
@@ -104,6 +120,32 @@ export async function fetchFavicon(urlString: string): Promise<string | null> {
 
   // Race between fetch and timeout
   return Promise.race([fetchPromise, timeoutPromise]);
+}
+
+/**
+ * Detect image format from buffer using magic numbers
+ */
+function detectImageFormat(buffer: Buffer): string | null {
+  // Check magic numbers (first few bytes of file)
+  if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) {
+    return 'png';
+  }
+  if (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) {
+    return 'jpeg';
+  }
+  if (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46) {
+    return 'gif';
+  }
+  if (buffer[0] === 0x00 && buffer[1] === 0x00 && buffer[2] === 0x01 && buffer[3] === 0x00) {
+    return 'x-icon'; // .ico format
+  }
+  if (buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46) {
+    return 'webp';
+  }
+  if (buffer.toString('utf8', 0, 4) === '<svg' || buffer.toString('utf8', 0, 5) === '<?xml') {
+    return 'svg+xml';
+  }
+  return null;
 }
 
 /**
