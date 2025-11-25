@@ -134,12 +134,15 @@ export async function fetchFavicon(urlString: string): Promise<string | null> {
         console.log('✅ Successfully converted favicon to PNG');
         return base64;
       } catch (sharpError) {
-        console.log('⚠️ Sharp conversion failed:', sharpError);
+        console.error('⚠️ Sharp conversion failed:', sharpError);
+        console.error('📍 Catch block entered - attempting Google fallback');
         // Try Google as final fallback for problematic ICO files
         console.log('🔄 Trying Google favicon service as fallback...');
         try {
-          const googleUrl = `https://www.google.com/s2/favicons?domain=${new URL(urlString).hostname}&sz=128`;
+          const googleUrl = `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=128`;
+          console.log(`🔗 Google URL: ${googleUrl}`);
           const googleBuffer = await downloadImage(googleUrl);
+          console.log(`📦 Google buffer size: ${googleBuffer ? googleBuffer.length : 'NULL'}`);
           if (googleBuffer && googleBuffer.length >= 200) {
             console.log(`✅ Got from Google fallback (${googleBuffer.length} bytes)`);
             // Google returns PNG, so try to process it
@@ -147,11 +150,15 @@ export async function fetchFavicon(urlString: string): Promise<string | null> {
               .resize(32, 32, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
               .png()
               .toBuffer();
+            console.log('✅ Google fallback PNG conversion succeeded');
             return `data:image/png;base64,${pngBuffer.toString('base64')}`;
+          } else {
+            console.log('⚠️ Google buffer too small or null');
           }
         } catch (googleError) {
-          console.log('❌ Google fallback also failed:', googleError);
+          console.error('❌ Google fallback also failed:', googleError);
         }
+        console.log('❌ Returning null from Sharp catch block');
         return null;
       }
     }
