@@ -8,12 +8,12 @@ import sharp from 'sharp';
  */
 export async function fetchFavicon(urlString: string): Promise<string | null> {
   console.log('🔍 Starting favicon fetch for:', urlString);
-  // Add overall timeout of 8 seconds
+  // Add overall timeout of 15 seconds (HTML parsing can be slow)
   const timeoutPromise = new Promise<null>((resolve) => {
     setTimeout(() => {
-      console.log('⏱️ Favicon fetch timeout for:', urlString);
+      console.log('⏱️ Favicon fetch timeout (15s) for:', urlString);
       resolve(null);
-    }, 8000);
+    }, 15000);
   });
 
   const fetchPromise = (async () => {
@@ -250,10 +250,12 @@ async function findFaviconInHTML(urlString: string): Promise<string | null> {
       /<link[^>]*rel=["']apple-touch-icon[^"']*["'][^>]*href=["']([^"']+)["']/i,
     ];
 
-    for (const pattern of iconPatterns) {
+    for (let i = 0; i < iconPatterns.length; i++) {
+      const pattern = iconPatterns[i];
       const match = html.match(pattern);
       if (match && match[1]) {
         let faviconPath = match[1];
+        console.log(`✅ Matched pattern ${i + 1}: ${faviconPath}`);
         
         // Handle relative URLs
         if (faviconPath.startsWith('//')) {
@@ -267,11 +269,12 @@ async function findFaviconInHTML(urlString: string): Promise<string | null> {
           faviconPath = `${url.protocol}//${url.hostname}/${faviconPath}`;
         }
 
-        console.log(`Found favicon link: ${faviconPath}`);
+        console.log(`🔗 Resolved to: ${faviconPath}`);
         return faviconPath;
       }
     }
 
+    console.log('❌ No favicon link found in HTML');
     return null;
   } catch (error) {
     return null;
@@ -286,42 +289,61 @@ function downloadHTML(url: string): Promise<string | null> {
     const protocol = url.startsWith('https') ? https : http;
     
     const options = {
-      timeout: 3000, // Reduced timeout for HTML parsing
+      timeout: 8000, // Increased timeout for slow sites like NASA
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       }
     };
     
+    console.log('📥 Downloading HTML from:', url);
     const request = protocol.get(url, options, (response) => {
+      // Handle redirects
+      if (response.statusCode === 301 || response.statusCode === 302) {
+        const redirectUrl = response.headers.location;
+        if (redirectUrl) {
+          console.log('↪️ Following redirect to:', redirectUrl);
+          resolve(downloadHTML(redirectUrl));
+          return;
+        }
+      }
+
       if (response.statusCode !== 200) {
+        console.log(`❌ HTML download failed: HTTP ${response.statusCode}`);
         resolve(null);
         return;
       }
 
       let html = '';
+      let bytesReceived = 0;
       
       response.on('data', (chunk) => {
         html += chunk.toString();
-        // Only need the head section
+        bytesReceived += chunk.length;
+        // Only need the head section (stop early to save time)
         if (html.includes('</head>')) {
+          console.log(`✅ Got HTML head section (${bytesReceived} bytes)`);
           response.destroy();
         }
       });
 
       response.on('end', () => {
+        console.log(`✅ HTML download complete (${bytesReceived} bytes total)`);
         resolve(html);
       });
 
-      response.on('error', () => {
+      response.on('error', (err) => {
+        console.log('❌ HTML download error:', err.message);
         resolve(null);
       });
     });
 
-    request.on('error', () => {
+    request.on('error', (err) => {
+      console.log('❌ HTML request error:', err.message);
       resolve(null);
     });
 
     request.on('timeout', () => {
+      console.log('⏱️ HTML download timeout');
       request.destroy();
       resolve(null);
     });
