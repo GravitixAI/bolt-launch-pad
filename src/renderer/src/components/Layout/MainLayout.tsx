@@ -60,7 +60,7 @@ export function MainLayout({ children, currentView, onViewChange }: MainLayoutPr
                 key={item.id}
                 onClick={() => onViewChange(item.id)}
                 className={`
-                  w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors
+                  w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors cursor-pointer
                   ${isActive 
                     ? 'bg-primary text-primary-foreground' 
                     : 'text-foreground hover:bg-accent hover:text-accent-foreground'
@@ -77,7 +77,7 @@ export function MainLayout({ children, currentView, onViewChange }: MainLayoutPr
         {/* Footer */}
         <div className="p-4 border-t border-border space-y-2">
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             className="w-full justify-start"
             onClick={handleSync}
@@ -88,7 +88,7 @@ export function MainLayout({ children, currentView, onViewChange }: MainLayoutPr
           </Button>
           
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             className="w-full justify-start"
             onClick={() => onViewChange('settings')}
@@ -100,7 +100,7 @@ export function MainLayout({ children, currentView, onViewChange }: MainLayoutPr
           <div className="flex items-center gap-2">
             <ThemeToggle />
             <Button
-              variant="outline"
+              variant="secondary"
               size="sm"
               className="flex-1"
               onClick={handleLogout}

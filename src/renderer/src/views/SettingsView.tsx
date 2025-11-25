@@ -74,11 +74,11 @@ export function SettingsView() {
 
         {/* MySQL Configuration */}
         <section className="space-y-4">
-          <h3 className="text-xl font-semibold">MySQL Connection</h3>
+          <h3 className="text-xl font-semibold text-foreground">MySQL Connection</h3>
           <div className="p-4 rounded-lg border border-border bg-card space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Connection Status</p>
+                <p className="font-medium text-foreground">Connection Status</p>
                 <p className="text-sm text-muted-foreground">
                   {mysqlConnected ? 'Connected' : 'Not connected'}
                 </p>
@@ -87,10 +87,10 @@ export function SettingsView() {
             </div>
 
             <div className="flex gap-2">
-              <Button onClick={handleTestConnection} variant="outline">
+              <Button onClick={handleTestConnection} variant="secondary">
                 Test Connection
               </Button>
-              <Button onClick={() => toast.info('Connection configuration dialog - coming soon')} variant="outline">
+              <Button onClick={() => toast.info('Connection configuration dialog - coming soon')} variant="secondary">
                 Configure Connection
               </Button>
             </div>
@@ -99,7 +99,7 @@ export function SettingsView() {
 
         {/* Environment Selection */}
         <section className="space-y-4">
-          <h3 className="text-xl font-semibold">Environment</h3>
+          <h3 className="text-xl font-semibold text-foreground">Environment</h3>
           <div className="p-4 rounded-lg border border-border bg-card space-y-4">
             <div className="flex gap-4">
               <Button
@@ -116,19 +116,19 @@ export function SettingsView() {
               </Button>
             </div>
             <p className="text-sm text-muted-foreground">
-              Current environment: <span className="font-medium">{env}</span>
+              Current environment: <span className="font-medium text-foreground">{env}</span>
             </p>
           </div>
         </section>
 
         {/* Sync Configuration */}
         <section className="space-y-4">
-          <h3 className="text-xl font-semibold">Synchronization</h3>
+          <h3 className="text-xl font-semibold text-foreground">Synchronization</h3>
           <div className="p-4 rounded-lg border border-border bg-card space-y-4">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-foreground">
               Sync team-level items with the MySQL database
             </p>
-            <Button onClick={handleManualSync}>
+            <Button onClick={handleManualSync} variant="default">
               Manual Sync Now
             </Button>
           </div>
@@ -136,12 +136,12 @@ export function SettingsView() {
 
         {/* Azure AD Configuration */}
         <section className="space-y-4">
-          <h3 className="text-xl font-semibold">Azure AD Authentication</h3>
+          <h3 className="text-xl font-semibold text-foreground">Azure AD Authentication</h3>
           <div className="p-4 rounded-lg border border-border bg-card space-y-4">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-foreground">
               Configure Azure AD for team authentication
             </p>
-            <Button onClick={() => toast.info('Azure AD configuration dialog - coming soon')} variant="outline">
+            <Button onClick={() => toast.info('Azure AD configuration dialog - coming soon')} variant="secondary">
               Configure Azure AD
             </Button>
           </div>
@@ -149,14 +149,14 @@ export function SettingsView() {
 
         {/* Database Info */}
         <section className="space-y-4">
-          <h3 className="text-xl font-semibold">Database Information</h3>
+          <h3 className="text-xl font-semibold text-foreground">Database Information</h3>
           <div className="p-4 rounded-lg border border-border bg-card space-y-2">
             <Button 
               onClick={async () => {
                 const path = await window.database.getDatabasePath();
                 toast.info(`Database location: ${path}`);
               }}
-              variant="outline"
+              variant="secondary"
               size="sm"
             >
               Show Database Location
@@ -166,7 +166,7 @@ export function SettingsView() {
                 const stats = await window.database.getStats();
                 toast.info(`Stats: ${JSON.stringify(stats)}`);
               }}
-              variant="outline"
+              variant="secondary"
               size="sm"
             >
               Show Statistics

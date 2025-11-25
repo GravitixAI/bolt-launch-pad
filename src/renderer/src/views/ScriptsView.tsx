@@ -5,12 +5,14 @@ import { Button } from '../components/ui/button';
 import { Script } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
+import { AddScriptDialog } from '../components/Scripts/AddScriptDialog';
 
 export function ScriptsView() {
   const { userEmail } = useAuth();
   const [scripts, setScripts] = useState<Script[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
 
   useEffect(() => {
     loadScripts();
@@ -90,11 +92,18 @@ export function ScriptsView() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <h2 className="text-3xl font-bold">Scripts</h2>
-          <Button onClick={() => toast.info('Add script dialog - coming soon')}>
+          <Button onClick={() => setAddDialogOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Add Script
           </Button>
         </div>
+
+        {/* Add Dialog */}
+        <AddScriptDialog
+          open={addDialogOpen}
+          onOpenChange={setAddDialogOpen}
+          onSuccess={loadScripts}
+        />
 
         {/* Search */}
         <SearchBar onSearch={handleSearch} placeholder="Search scripts..." />
@@ -104,7 +113,7 @@ export function ScriptsView() {
           {scripts.map((script) => (
             <div
               key={script.id}
-              className="p-4 rounded-lg border border-border bg-card hover:bg-accent transition-colors"
+              className="p-4 rounded-lg border border-border bg-card hover:bg-accent transition-colors cursor-pointer"
             >
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-2">

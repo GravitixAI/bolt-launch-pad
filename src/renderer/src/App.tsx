@@ -25,9 +25,11 @@ function AppContent() {
     );
   }
 
-  if (!isAuthenticated) {
-    return <LoginScreen />;
-  }
+  // Temporarily bypass auth for local testing
+  // TODO: Uncomment this when Azure AD is configured
+  // if (!isAuthenticated) {
+  //   return <LoginScreen />;
+  // }
 
   const renderView = () => {
     switch (currentView) {
