@@ -28,6 +28,32 @@ export function AddBookmarkDialog({ open, onOpenChange, onSuccess, bookmark, pre
     favicon: null as string | null,
   });
   const [showCustomIconUpload, setShowCustomIconUpload] = useState(false);
+  const [existingTags, setExistingTags] = useState<string[]>([]);
+
+  // Load all existing tags from bookmarks
+  useEffect(() => {
+    const loadExistingTags = async () => {
+      try {
+        const allBookmarks = await window.bookmarks.getAll(userEmail || undefined);
+        const tagSet = new Set<string>();
+        
+        allBookmarks.forEach(b => {
+          if (b.tags) {
+            const tags = b.tags.split(',').map(t => t.trim()).filter(t => t !== '');
+            tags.forEach(tag => tagSet.add(tag));
+          }
+        });
+        
+        setExistingTags(Array.from(tagSet).sort());
+      } catch (error) {
+        console.error('Failed to load existing tags:', error);
+      }
+    };
+    
+    if (open) {
+      loadExistingTags();
+    }
+  }, [open, userEmail]);
 
   // Prefill form when editing or adding with tag
   useEffect(() => {
@@ -255,10 +281,11 @@ export function AddBookmarkDialog({ open, onOpenChange, onSuccess, bookmark, pre
               <TagInput
                 value={formData.tags}
                 onChange={(tags) => setFormData({ ...formData, tags })}
-                placeholder="Type tag and press Enter or comma..."
+                placeholder="Type to search or create tags..."
+                existingTags={existingTags}
               />
               <p className="text-xs text-muted-foreground">
-                Type a tag name and press Enter or comma to add. Click X to remove. Shortcuts will appear under each tag section.
+                Type to search existing tags or create new ones. Press Enter/comma to add, use arrows to navigate suggestions.
               </p>
             </div>
             {formData.favicon && (
