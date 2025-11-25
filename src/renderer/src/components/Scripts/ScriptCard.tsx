@@ -27,8 +27,8 @@ export function ScriptCard({ script, onExecute, onEdit, onDelete }: ScriptCardPr
     >
       {/* Main clickable card */}
       <div
-        className={`relative flex items-center justify-center w-24 h-24 rounded-full bg-muted transition-all cursor-pointer hover:bg-accent hover:shadow-lg hover:ring-2 hover:ring-border ${
-          isHovered ? 'bg-accent scale-105 shadow-lg ring-2 ring-border' : ''
+        className={`relative flex items-center justify-center w-24 h-24 rounded-full bg-muted transition-all cursor-pointer hover:bg-accent hover:shadow-lg hover:ring-2 hover:ring-border dark:hover:shadow-white/20 dark:hover:ring-white/30 dark:hover:brightness-125 ${
+          isHovered ? 'bg-accent scale-105 shadow-lg ring-2 ring-border dark:shadow-white/20 dark:ring-white/30 dark:brightness-125' : ''
         }`}
         onClick={() => onExecute(script)}
       >
@@ -53,7 +53,7 @@ export function ScriptCard({ script, onExecute, onEdit, onDelete }: ScriptCardPr
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 rounded-full hover:bg-background/80 hover:shadow-md hover:ring-2 hover:ring-border text-foreground transition-all"
+                  className="h-8 w-8 rounded-full hover:bg-background/80 hover:shadow-md hover:ring-2 hover:ring-border dark:hover:shadow-white/20 dark:hover:ring-white/40 dark:hover:brightness-125 text-foreground transition-all"
                 >
                   <MoreVertical className="h-4 w-4" />
                 </Button>

@@ -107,7 +107,7 @@ export function ExecutablesView() {
               setAddDialogOpen(true);
             }}
           >
-            <div className="flex items-center justify-center w-24 h-24 rounded-full bg-muted hover:bg-accent hover:scale-105 hover:shadow-lg hover:ring-2 hover:ring-border transition-all">
+            <div className="flex items-center justify-center w-24 h-24 rounded-full bg-muted hover:bg-accent hover:scale-105 hover:shadow-lg hover:ring-2 hover:ring-border dark:hover:shadow-white/20 dark:hover:ring-white/30 dark:hover:brightness-125 transition-all">
               <Plus className="w-8 h-8 text-muted-foreground" />
             </div>
             <span className="text-sm text-center text-foreground">Add shortcut</span>
