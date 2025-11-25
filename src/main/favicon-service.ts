@@ -303,7 +303,8 @@ async function findFaviconInHTML(urlString: string): Promise<string | null> {
     console.log(`🔗 Resolved to: ${faviconPath}`);
     return faviconPath;
   } catch (error) {
-    console.log('❌ Error parsing HTML:', error);
+    console.error('❌ CRITICAL Error parsing HTML:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
     return null;
   }
 }
