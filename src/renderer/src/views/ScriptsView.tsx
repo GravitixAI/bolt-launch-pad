@@ -120,7 +120,7 @@ export function ScriptsView() {
                   {script.icon && (
                     <img src={script.icon} alt="" className="w-5 h-5" />
                   )}
-                  <h3 className="font-semibold">{script.title}</h3>
+                  <h3 className="font-semibold text-foreground">{script.title}</h3>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="px-2 py-1 text-xs rounded bg-secondary text-secondary-foreground">
@@ -131,7 +131,7 @@ export function ScriptsView() {
                   )}
                 </div>
               </div>
-              <pre className="text-xs bg-muted p-2 rounded mb-3 max-h-32 overflow-auto">
+              <pre className="text-xs text-foreground bg-muted p-2 rounded mb-3 max-h-32 overflow-auto">
                 {script.script_content.substring(0, 200)}
                 {script.script_content.length > 200 && '...'}
               </pre>
@@ -146,7 +146,7 @@ export function ScriptsView() {
                 </Button>
                 <Button 
                   size="sm" 
-                  variant="outline"
+                  variant="secondary"
                   onClick={() => handleCopy(script)}
                 >
                   <Copy className="w-4 h-4" />
@@ -154,7 +154,7 @@ export function ScriptsView() {
                 {script.is_team_level === 0 && (
                   <Button
                     size="sm"
-                    variant="outline"
+                    variant="secondary"
                     onClick={() => handlePromoteToTeam(script.id)}
                   >
                     <Upload className="w-4 h-4" />

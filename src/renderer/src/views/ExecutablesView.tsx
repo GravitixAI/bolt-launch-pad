@@ -108,7 +108,7 @@ export function ExecutablesView() {
                   {executable.icon && (
                     <img src={executable.icon} alt="" className="w-6 h-6" />
                   )}
-                  <h3 className="font-semibold truncate">{executable.title}</h3>
+                  <h3 className="font-semibold text-foreground truncate">{executable.title}</h3>
                 </div>
                 {executable.is_team_level === 1 && (
                   <span className="px-2 py-1 text-xs rounded bg-primary text-primary-foreground">Team</span>
@@ -130,7 +130,7 @@ export function ExecutablesView() {
                 {executable.is_team_level === 0 && (
                   <Button
                     size="sm"
-                    variant="outline"
+                    variant="secondary"
                     onClick={() => handlePromoteToTeam(executable.id)}
                   >
                     <Upload className="w-4 h-4" />

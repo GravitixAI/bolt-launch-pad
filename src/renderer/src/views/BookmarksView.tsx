@@ -102,7 +102,7 @@ export function BookmarksView() {
                   {bookmark.favicon && (
                     <img src={bookmark.favicon} alt="" className="w-4 h-4" />
                   )}
-                  <h3 className="font-semibold truncate">{bookmark.title}</h3>
+                  <h3 className="font-semibold text-foreground truncate">{bookmark.title}</h3>
                 </div>
                 {bookmark.is_team_level === 1 && (
                   <span className="px-2 py-1 text-xs rounded bg-primary text-primary-foreground">Team</span>
@@ -112,7 +112,7 @@ export function BookmarksView() {
               <div className="flex gap-2">
                 <Button 
                   size="sm" 
-                  variant="outline"
+                  variant="secondary"
                   onClick={() => handleOpenBookmark(bookmark.url)}
                 >
                   <ExternalLink className="w-4 h-4" />
@@ -120,7 +120,7 @@ export function BookmarksView() {
                 {bookmark.is_team_level === 0 && (
                   <Button
                     size="sm"
-                    variant="outline"
+                    variant="secondary"
                     onClick={() => handlePromoteToTeam(bookmark.id)}
                   >
                     <Upload className="w-4 h-4" />
