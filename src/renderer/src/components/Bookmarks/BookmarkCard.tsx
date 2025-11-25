@@ -14,22 +14,40 @@ interface BookmarkCardProps {
   onOpen: (url: string) => void;
   onEdit: (bookmark: Bookmark) => void;
   onDelete: (id: string) => void;
+  onDragStart?: (bookmark: Bookmark) => void;
+  isDragging?: boolean;
 }
 
-export function BookmarkCard({ bookmark, onOpen, onEdit, onDelete }: BookmarkCardProps) {
+export function BookmarkCard({ bookmark, onOpen, onEdit, onDelete, onDragStart, isDragging }: BookmarkCardProps) {
   const [isHovered, setIsHovered] = useState(false);
+
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('application/bookmark-id', bookmark.id);
+    console.log('🎯 Drag started:', bookmark.title);
+    if (onDragStart) {
+      onDragStart(bookmark);
+    }
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    console.log('👋 Drag ended');
+  };
 
   return (
     <div
       className="relative group flex flex-col items-center gap-2 w-24"
+      draggable={true}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Main clickable card */}
       <div
-        className={`relative flex items-center justify-center w-20 h-20 rounded-full bg-muted transition-all cursor-pointer hover:bg-accent hover:shadow-lg hover:ring-2 hover:ring-border dark:hover:shadow-white/20 dark:hover:ring-white/30 dark:hover:brightness-125 ${
+        className={`relative flex items-center justify-center w-20 h-20 rounded-full bg-muted transition-all cursor-move hover:bg-accent hover:shadow-lg hover:ring-2 hover:ring-border dark:hover:shadow-white/20 dark:hover:ring-white/30 dark:hover:brightness-125 ${
           isHovered ? 'bg-accent scale-105 shadow-lg ring-2 ring-border dark:shadow-white/20 dark:ring-white/30 dark:brightness-125' : ''
-        }`}
+        } ${isDragging ? 'opacity-50' : ''}`}
         onClick={() => onOpen(bookmark.url)}
       >
         {/* Favicon or fallback */}

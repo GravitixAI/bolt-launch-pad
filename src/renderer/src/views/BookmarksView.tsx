@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { AddBookmarkDialog } from '../components/Bookmarks/AddBookmarkDialog';
 import { BookmarkCard } from '../components/Bookmarks/BookmarkCard';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { cn } from '../lib/utils';
 
 export function BookmarksView() {
   const { userEmail } = useAuth();
@@ -17,6 +18,8 @@ export function BookmarksView() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [bookmarkToDelete, setBookmarkToDelete] = useState<string | null>(null);
   const [prefilledTag, setPrefilledTag] = useState<string | null>(null);
+  const [draggingBookmark, setDraggingBookmark] = useState<Bookmark | null>(null);
+  const [dropTarget, setDropTarget] = useState<string | null>(null);
 
   useEffect(() => {
     loadBookmarks();
@@ -87,6 +90,82 @@ export function BookmarksView() {
     setAddDialogOpen(true);
   };
 
+  // Drag and drop handlers for reordering between sections
+  const handleDragStart = (bookmark: Bookmark) => {
+    setDraggingBookmark(bookmark);
+  };
+
+  const handleDragOverSection = (e: React.DragEvent, targetTag: string | null) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDropTarget(targetTag);
+  };
+
+  const handleDragLeaveSection = () => {
+    setDropTarget(null);
+  };
+
+  const handleDropOnSection = async (e: React.DragEvent, targetTag: string | null) => {
+    e.preventDefault();
+    setDropTarget(null);
+
+    if (!draggingBookmark) return;
+
+    // Get current tags as array
+    const currentTags = draggingBookmark.tags
+      ? draggingBookmark.tags.split(',').map(t => t.trim()).filter(t => t !== '')
+      : [];
+
+    // Determine the source tag (where the bookmark was dragged from)
+    // If bookmark has only one tag, that's the source
+    // If bookmark has multiple tags, we need to figure out which section it came from
+    let newTags: string[];
+
+    if (targetTag === null) {
+      // Dropped on General (untagged) section
+      // Remove all tags
+      newTags = [];
+    } else {
+      // Dropped on a tagged section
+      if (currentTags.length === 0) {
+        // Was untagged, add the new tag
+        newTags = [targetTag];
+      } else if (currentTags.length === 1) {
+        // Has one tag, replace it with the new tag
+        newTags = [targetTag];
+      } else {
+        // Has multiple tags
+        // We need to swap: find which tag to replace
+        // For now, let's check if targetTag is already in tags
+        if (currentTags.includes(targetTag)) {
+          // Already has this tag, no change needed
+          console.log('Bookmark already has this tag');
+          setDraggingBookmark(null);
+          return;
+        }
+        // Replace the first tag with the target tag (simple approach)
+        // Better UX: we could track which section it was dragged FROM
+        newTags = [targetTag, ...currentTags.slice(1)];
+      }
+    }
+
+    const newTagsString = newTags.join(', ');
+
+    try {
+      await window.bookmarks.update(draggingBookmark.id, {
+        tags: newTagsString || undefined,
+        updated_by: userEmail || 'local-user',
+      });
+      toast.success(`Moved to ${targetTag || 'General'}`);
+      loadBookmarks();
+    } catch (error) {
+      console.error('Failed to update bookmark tags:', error);
+      toast.error('Failed to move bookmark');
+    } finally {
+      setDraggingBookmark(null);
+    }
+  };
+
   // Group bookmarks by tags
   const groupedBookmarks = () => {
     const groups: { [key: string]: Bookmark[] } = {};
@@ -124,7 +203,15 @@ export function BookmarksView() {
         {untagged.length > 0 && (
           <div>
             <h2 className="text-xl font-semibold mb-4 text-foreground">General</h2>
-            <div className="flex flex-wrap gap-6">
+            <div
+              className={cn(
+                "flex flex-wrap gap-6 p-4 rounded-lg border-2 border-dashed transition-all",
+                dropTarget === null ? "border-primary bg-primary/5" : "border-transparent"
+              )}
+              onDragOver={(e) => handleDragOverSection(e, null)}
+              onDragLeave={handleDragLeaveSection}
+              onDrop={(e) => handleDropOnSection(e, null)}
+            >
               {untagged.map((bookmark) => (
                 <BookmarkCard
                   key={bookmark.id}
@@ -132,6 +219,8 @@ export function BookmarksView() {
                   onOpen={handleOpenBookmark}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
+                  onDragStart={handleDragStart}
+                  isDragging={draggingBookmark?.id === bookmark.id}
                 />
               ))}
               
@@ -157,7 +246,15 @@ export function BookmarksView() {
         {tagNames.map((tag) => (
           <div key={tag}>
             <h2 className="text-xl font-semibold mb-4 text-foreground capitalize">{tag}</h2>
-            <div className="flex flex-wrap gap-6">
+            <div
+              className={cn(
+                "flex flex-wrap gap-6 p-4 rounded-lg border-2 border-dashed transition-all",
+                dropTarget === tag ? "border-primary bg-primary/5" : "border-transparent"
+              )}
+              onDragOver={(e) => handleDragOverSection(e, tag)}
+              onDragLeave={handleDragLeaveSection}
+              onDrop={(e) => handleDropOnSection(e, tag)}
+            >
               {groups[tag].map((bookmark) => (
                 <BookmarkCard
                   key={bookmark.id}
@@ -165,6 +262,8 @@ export function BookmarksView() {
                   onOpen={handleOpenBookmark}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
+                  onDragStart={handleDragStart}
+                  isDragging={draggingBookmark?.id === bookmark.id}
                 />
               ))}
               
