@@ -27,8 +27,8 @@ export function BookmarkCard({ bookmark, onOpen, onEdit, onDelete }: BookmarkCar
     >
       {/* Main clickable card */}
       <div
-        className={`relative flex items-center justify-center w-24 h-24 rounded-full bg-muted transition-all cursor-pointer hover:bg-accent ${
-          isHovered ? 'bg-accent scale-105' : ''
+        className={`relative flex items-center justify-center w-24 h-24 rounded-full bg-muted transition-all cursor-pointer hover:bg-accent hover:shadow-lg hover:ring-2 hover:ring-border ${
+          isHovered ? 'bg-accent scale-105 shadow-lg ring-2 ring-border' : ''
         }`}
         onClick={() => onOpen(bookmark.url)}
       >
