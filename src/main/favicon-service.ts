@@ -59,11 +59,13 @@ export async function fetchFavicon(urlString: string): Promise<string | null> {
         if (faviconUrl) {
           console.log(`✅ Found in HTML: ${faviconUrl}`);
           const buffer = await downloadImage(faviconUrl);
-          if (buffer && buffer.length >= 500) {
+          const isIco = faviconUrl.endsWith('.ico');
+          const minSize = isIco ? 200 : 500; // ICO files can be smaller
+          if (buffer && buffer.length >= minSize) {
             console.log(`✅ Downloaded valid image from HTML link (${buffer.length} bytes)`);
             faviconBuffer = buffer;
           } else if (buffer) {
-            console.log(`⚠️ HTML icon too small (${buffer.length} bytes) - skipping`);
+            console.log(`⚠️ HTML icon too small (${buffer.length} bytes, min: ${minSize}) - skipping`);
           }
         }
       } catch (e) {
@@ -77,7 +79,8 @@ export async function fetchFavicon(urlString: string): Promise<string | null> {
         const faviconUrl = `${baseUrl}/favicon.ico`;
         console.log(`📁 Strategy 3: Root /favicon.ico`);
         const buffer = await downloadImage(faviconUrl);
-        if (buffer && buffer.length >= 500) {
+        // ICO files can be legitimately small (200+ bytes is valid)
+        if (buffer && buffer.length >= 200) {
           console.log(`✅ Got valid /favicon.ico (${buffer.length} bytes)`);
           faviconBuffer = buffer;
         } else if (buffer) {
@@ -271,11 +274,17 @@ async function findFaviconInHTML(urlString: string): Promise<string | null> {
       return null;
     }
 
-    // Sort by preference: PNG type first, then by size (prefer 32-128px range)
+    // Sort by preference: PNG first, then ICO, then by size (prefer 32-128px range)
     iconCandidates.sort((a, b) => {
-      // Prefer PNG
+      // Prefer PNG (best quality)
       if (a.type.includes('png') && !b.type.includes('png')) return -1;
       if (!a.type.includes('png') && b.type.includes('png')) return 1;
+      
+      // Then prefer ICO (traditional favicon format)
+      const aIsIco = a.type.includes('x-icon') || a.href.endsWith('.ico');
+      const bIsIco = b.type.includes('x-icon') || b.href.endsWith('.ico');
+      if (aIsIco && !bIsIco) return -1;
+      if (!aIsIco && bIsIco) return 1;
       
       // Prefer sizes in the 32-128 range
       const aInRange = a.size >= 32 && a.size <= 128;
