@@ -114,17 +114,11 @@ export async function fetchFavicon(urlString: string): Promise<string | null> {
       return null;
     }
 
-    // Detect format first
+    // Detect format
     const format = detectImageFormat(faviconBuffer);
     console.log(`📊 Detected format: ${format}`);
     
-    // For ICO files, skip Sharp and continue to HTML parsing (which will find PNG versions)
-    if (format === 'x-icon') {
-      console.log('⚠️ ICO format detected - skipping to HTML parsing for PNG version');
-      faviconBuffer = null; // Clear to trigger HTML parsing strategy below
-    }
-    
-    // Try to convert to PNG and resize to 32x32 (if we have a buffer)
+    // Try to convert to PNG and resize to 32x32
     if (faviconBuffer) {
       try {
         console.log(`📊 Original buffer size: ${faviconBuffer.length} bytes`);
