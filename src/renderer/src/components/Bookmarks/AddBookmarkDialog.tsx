@@ -24,6 +24,7 @@ export function AddBookmarkDialog({ open, onOpenChange, onSuccess, bookmark }: A
     category: '',
     favicon: null as string | null,
   });
+  const [showCustomIconUpload, setShowCustomIconUpload] = useState(false);
 
   // Prefill form when editing
   useEffect(() => {
@@ -138,15 +139,59 @@ export function AddBookmarkDialog({ open, onOpenChange, onSuccess, bookmark }: A
       setFormData({ ...formData, favicon });
       if (favicon) {
         toast.success('Favicon fetched successfully');
+        setShowCustomIconUpload(false);
       } else {
-        toast.warning('No favicon found - using letter placeholder');
+        toast.info('No favicon found - you can upload a custom icon or use the letter placeholder');
+        setShowCustomIconUpload(true);
       }
     } catch (error) {
       console.error('Failed to fetch favicon:', error);
       toast.error(`Failed to fetch favicon: ${error}`);
+      setShowCustomIconUpload(true);
     } finally {
       setFetchingFavicon(false);
     }
+  };
+
+  const handleCustomIconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+
+    // Validate file size (max 1MB)
+    if (file.size > 1024 * 1024) {
+      toast.error('Image size must be less than 1MB');
+      return;
+    }
+
+    try {
+      // Convert to base64
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = reader.result as string;
+        setFormData({ ...formData, favicon: base64 });
+        toast.success('Custom icon uploaded successfully');
+        setShowCustomIconUpload(false);
+      };
+      reader.onerror = () => {
+        toast.error('Failed to read image file');
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Failed to upload custom icon:', error);
+      toast.error('Failed to upload custom icon');
+    }
+  };
+
+  const handleClearIcon = () => {
+    setFormData({ ...formData, favicon: null });
+    setShowCustomIconUpload(false);
+    toast.info('Icon cleared - will use letter placeholder');
   };
 
   return (
@@ -196,7 +241,43 @@ export function AddBookmarkDialog({ open, onOpenChange, onSuccess, bookmark }: A
             {formData.favicon && (
               <div className="flex items-center gap-2">
                 <Label>Icon Preview:</Label>
-                <img src={formData.favicon} alt="Favicon" className="w-8 h-8" />
+                <img src={formData.favicon} alt="Favicon" className="w-8 h-8 rounded-full" />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearIcon}
+                  title="Clear icon and use letter placeholder"
+                >
+                  Clear Icon
+                </Button>
+              </div>
+            )}
+            {showCustomIconUpload && !formData.favicon && (
+              <div className="space-y-2 p-4 border border-dashed rounded-md bg-muted/30">
+                <Label htmlFor="custom-icon">Custom Icon (Optional)</Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  No icon was found automatically. You can upload your own icon or use the default letter placeholder.
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    id="custom-icon"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCustomIconUpload}
+                    className="cursor-pointer"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowCustomIconUpload(false)}
+                  >
+                    Use Letter
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Accepted: PNG, JPG, ICO, SVG (max 1MB)
+                </p>
               </div>
             )}
           </div>
