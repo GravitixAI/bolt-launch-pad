@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import { TagInput } from '../ui/tag-input';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 import { Bookmark } from '../../types';
@@ -251,14 +252,13 @@ export function AddBookmarkDialog({ open, onOpenChange, onSuccess, bookmark, pre
             </div>
             <div className="space-y-2">
               <Label htmlFor="tags">Tags (Optional)</Label>
-              <Input
-                id="tags"
+              <TagInput
                 value={formData.tags}
-                onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                placeholder="work, favorites, dev-tools (comma-separated)"
+                onChange={(tags) => setFormData({ ...formData, tags })}
+                placeholder="Type tag and press Enter or comma..."
               />
               <p className="text-xs text-muted-foreground">
-                Add multiple tags separated by commas. Shortcuts will appear under each tag.
+                Type a tag name and press Enter or comma to add. Click X to remove. Shortcuts will appear under each tag section.
               </p>
             </div>
             {formData.favicon && (
