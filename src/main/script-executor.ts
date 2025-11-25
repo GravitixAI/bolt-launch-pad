@@ -113,6 +113,13 @@ export async function executeExecutable(
   timeout: number = EXECUTION_TIMEOUT
 ): Promise<ScriptExecutionResult> {
   return new Promise((resolve) => {
+    // Quote the executable path if it contains spaces and isn't already quoted
+    let quotedPath = executablePath.trim();
+    if (quotedPath.includes(' ') && !quotedPath.startsWith('"')) {
+      quotedPath = `"${quotedPath}"`;
+    }
+    
+    // Parse parameters - be smart about quotes in parameters
     const args = parameters ? parameters.split(' ').filter(arg => arg.trim()) : [];
     
     const options: SpawnOptions = {
@@ -120,7 +127,8 @@ export async function executeExecutable(
       windowsHide: false,
     };
 
-    const process = spawn(executablePath, args, options);
+    console.log(`🚀 Launching: ${quotedPath} ${args.join(' ')}`);
+    const process = spawn(quotedPath, args, options);
     
     let stdout = '';
     let stderr = '';
