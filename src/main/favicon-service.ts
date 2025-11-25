@@ -37,10 +37,14 @@ export async function fetchFavicon(urlString: string): Promise<string | null> {
       if (faviconBuffer) break;
       try {
         console.log(`🍎 Strategy 1: Apple Touch Icon: ${applePath}`);
-        faviconBuffer = await downloadImage(applePath);
-        if (faviconBuffer) {
-          console.log('✅ Got Apple Touch Icon');
+        const buffer = await downloadImage(applePath);
+        // Validate that we got a real image (at least 500 bytes for a proper icon)
+        if (buffer && buffer.length >= 500) {
+          console.log(`✅ Got valid Apple Touch Icon (${buffer.length} bytes)`);
+          faviconBuffer = buffer;
           break;
+        } else if (buffer) {
+          console.log(`⚠️ Apple Touch Icon too small (${buffer.length} bytes) - probably corrupt/redirect`);
         }
       } catch (e) {
         // Try next path
@@ -54,8 +58,13 @@ export async function fetchFavicon(urlString: string): Promise<string | null> {
         const faviconUrl = await findFaviconInHTML(urlString);
         if (faviconUrl) {
           console.log(`✅ Found in HTML: ${faviconUrl}`);
-          faviconBuffer = await downloadImage(faviconUrl);
-          if (faviconBuffer) console.log('✅ Downloaded from HTML link');
+          const buffer = await downloadImage(faviconUrl);
+          if (buffer && buffer.length >= 500) {
+            console.log(`✅ Downloaded valid image from HTML link (${buffer.length} bytes)`);
+            faviconBuffer = buffer;
+          } else if (buffer) {
+            console.log(`⚠️ HTML icon too small (${buffer.length} bytes) - skipping`);
+          }
         }
       } catch (e) {
         console.log('❌ HTML parsing failed');
@@ -67,8 +76,13 @@ export async function fetchFavicon(urlString: string): Promise<string | null> {
       try {
         const faviconUrl = `${baseUrl}/favicon.ico`;
         console.log(`📁 Strategy 3: Root /favicon.ico`);
-        faviconBuffer = await downloadImage(faviconUrl);
-        if (faviconBuffer) console.log('✅ Got /favicon.ico');
+        const buffer = await downloadImage(faviconUrl);
+        if (buffer && buffer.length >= 500) {
+          console.log(`✅ Got valid /favicon.ico (${buffer.length} bytes)`);
+          faviconBuffer = buffer;
+        } else if (buffer) {
+          console.log(`⚠️ favicon.ico too small (${buffer.length} bytes) - skipping`);
+        }
       } catch (e) {
         console.log('❌ /favicon.ico not found');
       }
@@ -79,8 +93,14 @@ export async function fetchFavicon(urlString: string): Promise<string | null> {
       try {
         const googleUrl = `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=128`;
         console.log(`🔵 Strategy 4: Google favicon service`);
-        faviconBuffer = await downloadImage(googleUrl);
-        if (faviconBuffer) console.log('✅ Got from Google');
+        const buffer = await downloadImage(googleUrl);
+        if (buffer && buffer.length >= 200) {
+          // Google service returns smaller but valid PNGs
+          console.log(`✅ Got from Google (${buffer.length} bytes)`);
+          faviconBuffer = buffer;
+        } else if (buffer) {
+          console.log(`⚠️ Google icon too small (${buffer.length} bytes)`);
+        }
       } catch (e) {
         console.log('❌ Google failed');
       }
