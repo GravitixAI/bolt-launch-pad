@@ -125,28 +125,11 @@ export async function fetchFavicon(urlString: string): Promise<string | null> {
       }
     }
 
-    // Strategy 4: icon.horse service (great for auth-protected sites)
-    if (!faviconBuffer) {
-      try {
-        const iconHorseUrl = `https://icon.horse/icon/${url.hostname}`;
-        console.log(`🐴 Strategy 4: icon.horse service`);
-        const buffer = await downloadImage(iconHorseUrl);
-        if (buffer && buffer.length >= 200) {
-          console.log(`✅ Got from icon.horse (${buffer.length} bytes)`);
-          faviconBuffer = buffer;
-        } else if (buffer) {
-          console.log(`⚠️ icon.horse icon too small (${buffer.length} bytes)`);
-        }
-      } catch (e) {
-        console.log('❌ icon.horse failed');
-      }
-    }
-
-    // Strategy 5: Google favicon service (final fallback)
+    // Strategy 4: Google favicon service (final fallback)
     if (!faviconBuffer) {
       try {
         const googleUrl = `https://www.google.com/s2/favicons?sz=64&domain=${url.hostname}`;
-        console.log(`🔵 Strategy 5: Google favicon service`);
+        console.log(`🔵 Strategy 4: Google favicon service`);
         const buffer = await downloadImage(googleUrl);
         if (buffer && buffer.length >= 100) {
           // Google service returns smaller but valid PNGs
@@ -186,46 +169,8 @@ export async function fetchFavicon(urlString: string): Promise<string | null> {
         return base64;
       } catch (sharpError) {
         console.error('⚠️ Sharp conversion failed:', sharpError);
-        console.error('📍 Catch block entered - attempting Google fallback');
-        // Try multiple fallback services for problematic ICO files
-        console.log('🔄 Trying fallback favicon services...');
-        
-        // Try icon.horse first (often more reliable)
-        try {
-          const iconHorseUrl = `https://icon.horse/icon/${url.hostname}`;
-          console.log(`🐴 Trying icon.horse: ${iconHorseUrl}`);
-          const iconHorseBuffer = await downloadImage(iconHorseUrl);
-          console.log(`📦 Icon.horse buffer: ${iconHorseBuffer ? iconHorseBuffer.length : 'NULL'} bytes`);
-          if (iconHorseBuffer && iconHorseBuffer.length >= 200) {
-            const pngBuffer = await sharp(iconHorseBuffer)
-              .resize(32, 32, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-              .png()
-              .toBuffer();
-            console.log('✅ Icon.horse fallback succeeded');
-            return `data:image/png;base64,${pngBuffer.toString('base64')}`;
-          }
-        } catch (iconHorseError) {
-          console.log('❌ Icon.horse failed:', iconHorseError.message);
-        }
-        
-        // Try Google as secondary fallback
-        try {
-          const googleUrl = `https://www.google.com/s2/favicons?sz=64&domain=${url.hostname}`;
-          console.log(`🔵 Trying Google: ${googleUrl}`);
-          const googleBuffer = await downloadImage(googleUrl);
-          console.log(`📦 Google buffer: ${googleBuffer ? googleBuffer.length : 'NULL'} bytes`);
-          if (googleBuffer && googleBuffer.length >= 100) { // Google returns smaller files
-            const pngBuffer = await sharp(googleBuffer)
-              .resize(32, 32, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-              .png()
-              .toBuffer();
-            console.log('✅ Google fallback succeeded');
-            return `data:image/png;base64,${pngBuffer.toString('base64')}`;
-          }
-        } catch (googleError) {
-          console.log('❌ Google failed:', googleError.message);
-        }
-        console.log('❌ Returning null from Sharp catch block');
+        console.error('📍 Catch block entered - ICO conversion failed');
+        console.log('⚠️ ICO file could not be processed - will use letter fallback');
         return null;
       }
     }
