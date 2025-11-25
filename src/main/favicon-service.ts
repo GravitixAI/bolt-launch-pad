@@ -20,37 +20,59 @@ export async function fetchFavicon(urlString: string): Promise<string | null> {
       const url = new URL(urlString);
       const baseUrl = `${url.protocol}//${url.hostname}`;
 
-      let faviconBuffer: Buffer | null = null;
+    let faviconBuffer: Buffer | null = null;
 
-      // Strategy 1: Use Google's favicon service first (most reliable)
+    // Strategy 1: Try to parse HTML for favicon link first (most accurate)
+    try {
+      const faviconUrl = await findFaviconInHTML(urlString);
+      if (faviconUrl) {
+        console.log(`Found favicon in HTML: ${faviconUrl}`);
+        faviconBuffer = await downloadImage(faviconUrl);
+      }
+    } catch (e) {
+      console.log('HTML parsing for favicon failed');
+    }
+
+    // Strategy 2: Try /favicon.ico
+    if (!faviconBuffer) {
       try {
-        const googleFaviconUrl = `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=64`;
+        const faviconUrl = `${baseUrl}/favicon.ico`;
+        console.log(`Trying direct favicon: ${faviconUrl}`);
+        faviconBuffer = await downloadImage(faviconUrl);
+      } catch (e) {
+        console.log('Direct favicon.ico failed');
+      }
+    }
+
+    // Strategy 3: Try Google's favicon service with larger size
+    if (!faviconBuffer) {
+      try {
+        const googleFaviconUrl = `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=128`;
+        console.log(`Trying Google favicon service: ${googleFaviconUrl}`);
         faviconBuffer = await downloadImage(googleFaviconUrl);
       } catch (e) {
-        console.log('Google favicon service failed, trying other methods');
+        console.log('Google favicon service failed');
       }
+    }
 
-      // Strategy 2: Try /favicon.ico
-      if (!faviconBuffer) {
+    // Strategy 4: Try alternative favicon locations
+    if (!faviconBuffer) {
+      const alternativeLocations = [
+        `${baseUrl}/favicon.png`,
+        `${baseUrl}/apple-touch-icon.png`,
+        `${baseUrl}/apple-touch-icon-precomposed.png`,
+      ];
+      
+      for (const location of alternativeLocations) {
         try {
-          const faviconUrl = `${baseUrl}/favicon.ico`;
-          faviconBuffer = await downloadImage(faviconUrl);
+          console.log(`Trying alternative location: ${location}`);
+          faviconBuffer = await downloadImage(location);
+          if (faviconBuffer) break;
         } catch (e) {
-          console.log('Direct favicon.ico failed');
+          continue;
         }
       }
-
-      // Strategy 3: Try to parse HTML for favicon link
-      if (!faviconBuffer) {
-        try {
-          const faviconUrl = await findFaviconInHTML(urlString);
-          if (faviconUrl) {
-            faviconBuffer = await downloadImage(faviconUrl);
-          }
-        } catch (e) {
-          console.log('HTML parsing for favicon failed');
-        }
-      }
+    }
 
       if (!faviconBuffer) {
         console.log('No favicon found for:', urlString);
@@ -84,7 +106,14 @@ function downloadImage(url: string): Promise<Buffer | null> {
   return new Promise((resolve) => {
     const protocol = url.startsWith('https') ? https : http;
     
-    const request = protocol.get(url, { timeout: 5000 }, (response) => {
+    const options = {
+      timeout: 5000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    };
+    
+    const request = protocol.get(url, options, (response) => {
       if (response.statusCode !== 200) {
         resolve(null);
         return;
@@ -124,27 +153,43 @@ async function findFaviconInHTML(urlString: string): Promise<string | null> {
     const html = await downloadHTML(urlString);
     if (!html) return null;
 
-    // Look for favicon link in HTML
-    const iconRegex = /<link[^>]*rel=["'](?:shortcut )?icon["'][^>]*href=["']([^"']+)["']/i;
-    const match = html.match(iconRegex);
+    // Look for various types of icon links in HTML
+    const iconPatterns = [
+      // Standard favicon
+      /<link[^>]*rel=["'](?:shortcut )?icon["'][^>]*href=["']([^"']+)["']/i,
+      // Reverse order (href before rel)
+      /<link[^>]*href=["']([^"']+)["'][^>]*rel=["'](?:shortcut )?icon["']/i,
+      // Apple touch icon
+      /<link[^>]*rel=["']apple-touch-icon[^"']*["'][^>]*href=["']([^"']+)["']/i,
+      // Reverse apple touch icon
+      /<link[^>]*href=["']([^"']+)["'][^>]*rel=["']apple-touch-icon[^"']*["']/i,
+      // PNG icon specifically
+      /<link[^>]*type=["']image\/png["'][^>]*href=["']([^"']+)["']/i,
+    ];
 
-    if (!match || !match[1]) return null;
+    for (const pattern of iconPatterns) {
+      const match = html.match(pattern);
+      if (match && match[1]) {
+        let faviconPath = match[1];
+        
+        // Handle relative URLs
+        if (faviconPath.startsWith('//')) {
+          const url = new URL(urlString);
+          faviconPath = `${url.protocol}${faviconPath}`;
+        } else if (faviconPath.startsWith('/')) {
+          const url = new URL(urlString);
+          faviconPath = `${url.protocol}//${url.hostname}${faviconPath}`;
+        } else if (!faviconPath.startsWith('http')) {
+          const url = new URL(urlString);
+          faviconPath = `${url.protocol}//${url.hostname}/${faviconPath}`;
+        }
 
-    let faviconPath = match[1];
-    
-    // Handle relative URLs
-    if (faviconPath.startsWith('//')) {
-      const url = new URL(urlString);
-      faviconPath = `${url.protocol}${faviconPath}`;
-    } else if (faviconPath.startsWith('/')) {
-      const url = new URL(urlString);
-      faviconPath = `${url.protocol}//${url.hostname}${faviconPath}`;
-    } else if (!faviconPath.startsWith('http')) {
-      const url = new URL(urlString);
-      faviconPath = `${url.protocol}//${url.hostname}/${faviconPath}`;
+        console.log(`Found favicon link: ${faviconPath}`);
+        return faviconPath;
+      }
     }
 
-    return faviconPath;
+    return null;
   } catch (error) {
     return null;
   }
@@ -157,7 +202,14 @@ function downloadHTML(url: string): Promise<string | null> {
   return new Promise((resolve) => {
     const protocol = url.startsWith('https') ? https : http;
     
-    const request = protocol.get(url, { timeout: 5000 }, (response) => {
+    const options = {
+      timeout: 5000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    };
+    
+    const request = protocol.get(url, options, (response) => {
       if (response.statusCode !== 200) {
         resolve(null);
         return;
