@@ -6,6 +6,7 @@ export interface Bookmark {
   url: string;
   favicon?: string;
   category?: string;
+  tags?: string; // Comma-separated list
   is_team_level: number;
   is_personal: number;
   created_by?: string;
@@ -23,6 +24,7 @@ export interface Executable {
   parameters?: string;
   icon?: string;
   category?: string;
+  tags?: string; // Comma-separated list
   is_team_level: number;
   is_personal: number;
   created_by?: string;
@@ -40,6 +42,7 @@ export interface Script {
   script_type: 'powershell' | 'cmd';
   icon?: string;
   category?: string;
+  tags?: string; // Comma-separated list
   is_team_level: number;
   is_personal: number;
   created_by?: string;

@@ -58,6 +58,7 @@ export function initializeDatabase() {
       url TEXT NOT NULL,
       favicon TEXT,
       category TEXT,
+      tags TEXT, -- Comma-separated list of tags
       is_team_level INTEGER DEFAULT 0,
       is_personal INTEGER DEFAULT 1,
       created_by TEXT,
@@ -78,6 +79,7 @@ export function initializeDatabase() {
       parameters TEXT,
       icon TEXT,
       category TEXT,
+      tags TEXT, -- Comma-separated list of tags
       is_team_level INTEGER DEFAULT 0,
       is_personal INTEGER DEFAULT 1,
       created_by TEXT,
@@ -98,6 +100,7 @@ export function initializeDatabase() {
       script_type TEXT CHECK(script_type IN ('powershell', 'cmd')),
       icon TEXT,
       category TEXT,
+      tags TEXT, -- Comma-separated list of tags
       is_team_level INTEGER DEFAULT 0,
       is_personal INTEGER DEFAULT 1,
       created_by TEXT,

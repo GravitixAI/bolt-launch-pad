@@ -79,26 +79,79 @@ export function BookmarksView() {
     }
   };
 
+  // Group bookmarks by tags
+  const groupedBookmarks = () => {
+    const groups: { [key: string]: Bookmark[] } = {};
+    const untagged: Bookmark[] = [];
+
+    bookmarks.forEach((bookmark) => {
+      if (!bookmark.tags || bookmark.tags.trim() === '') {
+        untagged.push(bookmark);
+      } else {
+        // Split tags and add bookmark to each tag group
+        const tags = bookmark.tags.split(',').map(t => t.trim()).filter(t => t !== '');
+        tags.forEach(tag => {
+          if (!groups[tag]) {
+            groups[tag] = [];
+          }
+          groups[tag].push(bookmark);
+        });
+      }
+    });
+
+    return { groups, untagged };
+  };
+
   if (loading) {
     return <div className="p-8">Loading bookmarks...</div>;
   }
 
+  const { groups, untagged } = groupedBookmarks();
+  const tagNames = Object.keys(groups).sort();
+
   return (
     <div className="p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Bookmarks Grid - Chrome-style */}
-        <div className="flex flex-wrap gap-6 mb-8">
-          {bookmarks.map((bookmark) => (
-            <BookmarkCard
-              key={bookmark.id}
-              bookmark={bookmark}
-              onOpen={handleOpenBookmark}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
-          ))}
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Tagged Groups */}
+        {tagNames.map((tag) => (
+          <div key={tag}>
+            <h2 className="text-xl font-semibold mb-4 text-foreground capitalize">{tag}</h2>
+            <div className="flex flex-wrap gap-6">
+              {groups[tag].map((bookmark) => (
+                <BookmarkCard
+                  key={bookmark.id}
+                  bookmark={bookmark}
+                  onOpen={handleOpenBookmark}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
 
-          {/* Add Shortcut Button */}
+        {/* Untagged Bookmarks */}
+        {untagged.length > 0 && (
+          <div>
+            <h2 className="text-xl font-semibold mb-4 text-foreground">
+              {tagNames.length > 0 ? 'Other' : 'All Shortcuts'}
+            </h2>
+            <div className="flex flex-wrap gap-6">
+              {untagged.map((bookmark) => (
+                <BookmarkCard
+                  key={bookmark.id}
+                  bookmark={bookmark}
+                  onOpen={handleOpenBookmark}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Add Shortcut Button - Always visible */}
+        <div className="flex flex-wrap gap-6">
           <div
             className="flex flex-col items-center gap-2 w-24 cursor-pointer"
             onClick={() => {

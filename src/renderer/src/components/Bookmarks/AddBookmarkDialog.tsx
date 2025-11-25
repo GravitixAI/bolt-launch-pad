@@ -22,6 +22,7 @@ export function AddBookmarkDialog({ open, onOpenChange, onSuccess, bookmark }: A
     title: '',
     url: '',
     category: '',
+    tags: '',
     favicon: null as string | null,
   });
   const [showCustomIconUpload, setShowCustomIconUpload] = useState(false);
@@ -33,10 +34,11 @@ export function AddBookmarkDialog({ open, onOpenChange, onSuccess, bookmark }: A
         title: bookmark.title,
         url: bookmark.url,
         category: bookmark.category || '',
+        tags: bookmark.tags || '',
         favicon: bookmark.favicon || null,
       });
     } else {
-      setFormData({ title: '', url: '', category: '', favicon: null });
+      setFormData({ title: '', url: '', category: '', tags: '', favicon: null });
     }
   }, [bookmark, open]);
 
@@ -95,6 +97,7 @@ export function AddBookmarkDialog({ open, onOpenChange, onSuccess, bookmark }: A
           url: formData.url,
           favicon: favicon || undefined,
           category: formData.category || undefined,
+          tags: formData.tags || undefined,
           updated_by: userEmail || 'local-user',
         });
         toast.success('Bookmark updated successfully');
@@ -105,6 +108,7 @@ export function AddBookmarkDialog({ open, onOpenChange, onSuccess, bookmark }: A
           url: formData.url,
           favicon: favicon || undefined,
           category: formData.category || undefined,
+          tags: formData.tags || undefined,
           is_team_level: 0,
           is_personal: 1,
           created_by: userEmail || 'local-user',
@@ -113,7 +117,7 @@ export function AddBookmarkDialog({ open, onOpenChange, onSuccess, bookmark }: A
         toast.success('Bookmark created successfully');
       }
 
-      setFormData({ title: '', url: '', category: '', favicon: null });
+      setFormData({ title: '', url: '', category: '', tags: '', favicon: null });
       onOpenChange(false);
       onSuccess();
     } catch (error) {
@@ -236,6 +240,18 @@ export function AddBookmarkDialog({ open, onOpenChange, onSuccess, bookmark }: A
               </div>
               <p className="text-xs text-muted-foreground">
                 Icon will be fetched automatically when you click Done, or click "Get Icon" to preview first
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tags">Tags (Optional)</Label>
+              <Input
+                id="tags"
+                value={formData.tags}
+                onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+                placeholder="work, favorites, dev-tools (comma-separated)"
+              />
+              <p className="text-xs text-muted-foreground">
+                Add multiple tags separated by commas. Shortcuts will appear under each tag.
               </p>
             </div>
             {formData.favicon && (

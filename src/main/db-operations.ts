@@ -156,14 +156,14 @@ export const dbOperations = {
     
     const stmt = db.prepare(`
       INSERT INTO bookmarks (
-        id, title, url, favicon, category, is_team_level, is_personal, 
+        id, title, url, favicon, category, tags, is_team_level, is_personal, 
         created_by, updated_by, sync_hash
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     
     stmt.run(
       id, bookmark.title, bookmark.url, bookmark.favicon, bookmark.category,
-      bookmark.is_team_level, bookmark.is_personal, bookmark.created_by,
+      bookmark.tags, bookmark.is_team_level, bookmark.is_personal, bookmark.created_by,
       bookmark.updated_by, sync_hash
     );
     
@@ -217,14 +217,14 @@ export const dbOperations = {
     
     const stmt = db.prepare(`
       UPDATE bookmarks 
-      SET title = ?, url = ?, favicon = ?, category = ?, 
+      SET title = ?, url = ?, favicon = ?, category = ?, tags = ?,
           is_team_level = ?, is_personal = ?, updated_by = ?,
           updated_at = CURRENT_TIMESTAMP, sync_hash = ?
       WHERE id = ?
     `);
     
     return stmt.run(
-      updated.title, updated.url, updated.favicon, updated.category,
+      updated.title, updated.url, updated.favicon, updated.category, updated.tags,
       updated.is_team_level, updated.is_personal, updated.updated_by,
       sync_hash, id
     );
