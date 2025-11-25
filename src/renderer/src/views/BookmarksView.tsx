@@ -24,6 +24,10 @@ export function BookmarksView() {
   const loadBookmarks = async () => {
     try {
       const data = await window.bookmarks.getAll(userEmail || undefined);
+      console.log('📚 Loaded bookmarks:', data.length);
+      data.forEach(b => {
+        console.log(`  - ${b.title}: favicon=${b.favicon ? `${b.favicon.substring(0, 30)}... (${b.favicon.length} chars)` : 'NULL'}`);
+      });
       setBookmarks(data);
     } catch (error) {
       console.error('Failed to load bookmarks:', error);

@@ -104,13 +104,16 @@ export async function fetchFavicon(urlString: string): Promise<string | null> {
     // Try to convert to PNG and resize to 32x32 (if we have a buffer)
     if (faviconBuffer) {
       try {
+        console.log(`📊 Original buffer size: ${faviconBuffer.length} bytes`);
         const pngBuffer = await sharp(faviconBuffer)
           .resize(32, 32, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
           .png()
           .toBuffer();
 
+        console.log(`📊 Converted PNG buffer size: ${pngBuffer.length} bytes`);
         // Convert to base64
         const base64 = `data:image/png;base64,${pngBuffer.toString('base64')}`;
+        console.log(`📊 Final base64 string length: ${base64.length} characters`);
         console.log('✅ Successfully converted favicon to PNG');
         return base64;
       } catch (sharpError) {

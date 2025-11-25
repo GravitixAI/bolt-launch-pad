@@ -70,6 +70,11 @@ export function AddBookmarkDialog({ open, onOpenChange, onSuccess, bookmark }: A
           console.log('Favicon data length:', favicon ? favicon.length : 0);
           if (favicon) {
             console.log('Favicon preview:', favicon.substring(0, 100) + '...');
+            // Test if image is valid by trying to load it
+            const testImg = new Image();
+            testImg.onload = () => console.log('✅ Favicon image is valid and loadable');
+            testImg.onerror = () => console.error('❌ Favicon image failed to load - corrupt data');
+            testImg.src = favicon;
           }
           setFetchingFavicon(false);
           if (!favicon) {
