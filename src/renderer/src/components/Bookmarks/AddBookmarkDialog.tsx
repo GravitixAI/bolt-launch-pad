@@ -12,9 +12,10 @@ interface AddBookmarkDialogProps {
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
   bookmark?: Bookmark | null; // For edit mode
+  prefilledTag?: string | null; // For prefilling tag when adding to specific section
 }
 
-export function AddBookmarkDialog({ open, onOpenChange, onSuccess, bookmark }: AddBookmarkDialogProps) {
+export function AddBookmarkDialog({ open, onOpenChange, onSuccess, bookmark, prefilledTag }: AddBookmarkDialogProps) {
   const { userEmail } = useAuth();
   const [loading, setLoading] = useState(false);
   const [fetchingFavicon, setFetchingFavicon] = useState(false);
@@ -27,7 +28,7 @@ export function AddBookmarkDialog({ open, onOpenChange, onSuccess, bookmark }: A
   });
   const [showCustomIconUpload, setShowCustomIconUpload] = useState(false);
 
-  // Prefill form when editing
+  // Prefill form when editing or adding with tag
   useEffect(() => {
     if (bookmark) {
       setFormData({
@@ -38,9 +39,15 @@ export function AddBookmarkDialog({ open, onOpenChange, onSuccess, bookmark }: A
         favicon: bookmark.favicon || null,
       });
     } else {
-      setFormData({ title: '', url: '', category: '', tags: '', favicon: null });
+      setFormData({ 
+        title: '', 
+        url: '', 
+        category: '', 
+        tags: prefilledTag || '', 
+        favicon: null 
+      });
     }
-  }, [bookmark, open]);
+  }, [bookmark, prefilledTag, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

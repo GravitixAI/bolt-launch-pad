@@ -16,6 +16,7 @@ export function BookmarksView() {
   const [editingBookmark, setEditingBookmark] = useState<Bookmark | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [bookmarkToDelete, setBookmarkToDelete] = useState<string | null>(null);
+  const [prefilledTag, setPrefilledTag] = useState<string | null>(null);
 
   useEffect(() => {
     loadBookmarks();
@@ -76,7 +77,14 @@ export function BookmarksView() {
     setAddDialogOpen(open);
     if (!open) {
       setEditingBookmark(null);
+      setPrefilledTag(null);
     }
+  };
+
+  const handleAddWithTag = (tag: string) => {
+    setEditingBookmark(null);
+    setPrefilledTag(tag);
+    setAddDialogOpen(true);
   };
 
   // Group bookmarks by tags
@@ -126,6 +134,17 @@ export function BookmarksView() {
                   onDelete={handleDelete}
                 />
               ))}
+              
+              {/* Add Shortcut Button for this tag */}
+              <div
+                className="flex flex-col items-center gap-2 w-24 cursor-pointer"
+                onClick={() => handleAddWithTag(tag)}
+              >
+                <div className="flex items-center justify-center w-20 h-20 rounded-full bg-muted hover:bg-accent hover:scale-105 hover:shadow-lg hover:ring-2 hover:ring-border dark:hover:shadow-white/20 dark:hover:ring-white/30 dark:hover:brightness-125 transition-all">
+                  <Plus className="w-6 h-6 text-muted-foreground" />
+                </div>
+                <span className="text-sm text-center text-foreground">Add shortcut</span>
+              </div>
             </div>
           </div>
         ))}
@@ -146,30 +165,41 @@ export function BookmarksView() {
                   onDelete={handleDelete}
                 />
               ))}
+              
+              {/* Add Shortcut Button for untagged section */}
+              <div
+                className="flex flex-col items-center gap-2 w-24 cursor-pointer"
+                onClick={() => {
+                  setEditingBookmark(null);
+                  setPrefilledTag(null);
+                  setAddDialogOpen(true);
+                }}
+              >
+                <div className="flex items-center justify-center w-20 h-20 rounded-full bg-muted hover:bg-accent hover:scale-105 hover:shadow-lg hover:ring-2 hover:ring-border dark:hover:shadow-white/20 dark:hover:ring-white/30 dark:hover:brightness-125 transition-all">
+                  <Plus className="w-6 h-6 text-muted-foreground" />
+                </div>
+                <span className="text-sm text-center text-foreground">Add shortcut</span>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Add Shortcut Button - Always visible */}
-        <div className="flex flex-wrap gap-6">
-          <div
-            className="flex flex-col items-center gap-2 w-24 cursor-pointer"
-            onClick={() => {
-              setEditingBookmark(null);
-              setAddDialogOpen(true);
-            }}
-          >
-            <div className="flex items-center justify-center w-20 h-20 rounded-full bg-muted hover:bg-accent hover:scale-105 hover:shadow-lg hover:ring-2 hover:ring-border dark:hover:shadow-white/20 dark:hover:ring-white/30 dark:hover:brightness-125 transition-all">
-              <Plus className="w-6 h-6 text-muted-foreground" />
-            </div>
-            <span className="text-sm text-center text-foreground">Add shortcut</span>
-          </div>
-        </div>
-
+        {/* Add Shortcut Button - Only visible when no bookmarks at all */}
         {bookmarks.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground">
-            <p>No bookmarks found</p>
-            <p className="text-sm">Click "Add shortcut" to get started</p>
+          <div className="flex flex-wrap gap-6">
+            <div
+              className="flex flex-col items-center gap-2 w-24 cursor-pointer"
+              onClick={() => {
+                setEditingBookmark(null);
+                setPrefilledTag(null);
+                setAddDialogOpen(true);
+              }}
+            >
+              <div className="flex items-center justify-center w-20 h-20 rounded-full bg-muted hover:bg-accent hover:scale-105 hover:shadow-lg hover:ring-2 hover:ring-border dark:hover:shadow-white/20 dark:hover:ring-white/30 dark:hover:brightness-125 transition-all">
+                <Plus className="w-6 h-6 text-muted-foreground" />
+              </div>
+              <span className="text-sm text-center text-foreground">Add shortcut</span>
+            </div>
           </div>
         )}
 
@@ -179,6 +209,7 @@ export function BookmarksView() {
           onOpenChange={handleDialogClose}
           onSuccess={loadBookmarks}
           bookmark={editingBookmark}
+          prefilledTag={prefilledTag}
         />
 
         <ConfirmDialog
