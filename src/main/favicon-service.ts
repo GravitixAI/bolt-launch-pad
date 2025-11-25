@@ -228,8 +228,11 @@ function downloadImage(url: string): Promise<Buffer | null> {
  * Parse HTML to find favicon link
  */
 async function findFaviconInHTML(urlString: string): Promise<string | null> {
+  console.log('📞 findFaviconInHTML called for:', urlString);
   try {
+    console.log('⏳ About to download HTML...');
     const html = await downloadHTML(urlString);
+    console.log('📥 HTML download returned, length:', html ? html.length : 'NULL');
     if (!html) return null;
 
     console.log('🔍 Parsing HTML for icon links...');
@@ -349,7 +352,8 @@ function downloadHTML(url: string): Promise<string | null> {
         bytesReceived += chunk.length;
         // Only need the head section (stop early to save time)
         if (html.includes('</head>')) {
-          console.log(`✅ Got HTML head section (${bytesReceived} bytes)`);
+          console.log(`✅ Got HTML head section (${bytesReceived} bytes) - resolving early`);
+          resolve(html); // Resolve BEFORE destroying
           response.destroy();
         }
       });
