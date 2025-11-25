@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { TagInput } from '../ui/tag-input';
+import { TagInput, TagInputRef } from '../ui/tag-input';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 import { Bookmark } from '../../types';
@@ -29,6 +29,7 @@ export function AddBookmarkDialog({ open, onOpenChange, onSuccess, bookmark, pre
   });
   const [showCustomIconUpload, setShowCustomIconUpload] = useState(false);
   const [existingTags, setExistingTags] = useState<string[]>([]);
+  const tagInputRef = useRef<TagInputRef>(null);
 
   // Load all existing tags from bookmarks
   useEffect(() => {
@@ -78,6 +79,10 @@ export function AddBookmarkDialog({ open, onOpenChange, onSuccess, bookmark, pre
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Commit any pending tag input before submitting
+    tagInputRef.current?.commitPendingTag();
+    
     if (!formData.title || !formData.url) {
       toast.error('Please fill in required fields');
       return;
@@ -279,6 +284,7 @@ export function AddBookmarkDialog({ open, onOpenChange, onSuccess, bookmark, pre
             <div className="space-y-2">
               <Label htmlFor="tags">Tags (Optional)</Label>
               <TagInput
+                ref={tagInputRef}
                 value={formData.tags}
                 onChange={(tags) => setFormData({ ...formData, tags })}
                 placeholder="Type to search or create tags..."

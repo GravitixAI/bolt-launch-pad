@@ -1,4 +1,4 @@
-import { useState, KeyboardEvent, useRef, useEffect } from 'react';
+import { useState, KeyboardEvent, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { X } from 'lucide-react';
 import { Input } from './input';
 import { cn } from '../../lib/utils';
@@ -11,12 +11,17 @@ interface TagInputProps {
   existingTags?: string[]; // All available tags for autocomplete
 }
 
-export function TagInput({ value, onChange, placeholder, className, existingTags = [] }: TagInputProps) {
-  const [inputValue, setInputValue] = useState('');
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+export interface TagInputRef {
+  commitPendingTag: () => void;
+}
+
+export const TagInput = forwardRef<TagInputRef, TagInputProps>(
+  ({ value, onChange, placeholder, className, existingTags = [] }, ref) => {
+    const [inputValue, setInputValue] = useState('');
+    const [showDropdown, setShowDropdown] = useState(false);
+    const [selectedIndex, setSelectedIndex] = useState(0);
+    const inputRef = useRef<HTMLInputElement>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Parse comma-separated string into array
   const tags = value
@@ -39,6 +44,15 @@ export function TagInput({ value, onChange, placeholder, className, existingTags
     setShowDropdown(inputValue.length > 0 && suggestions.length > 0);
     setSelectedIndex(0);
   }, [inputValue, suggestions.length]);
+
+  // Expose method to commit pending input
+  useImperativeHandle(ref, () => ({
+    commitPendingTag: () => {
+      if (inputValue.trim() !== '') {
+        addTag(inputValue);
+      }
+    }
+  }));
 
   const addTag = (tag: string) => {
     const trimmedTag = tag.trim();
@@ -185,5 +199,7 @@ export function TagInput({ value, onChange, placeholder, className, existingTags
       )}
     </div>
   );
-}
+});
+
+TagInput.displayName = 'TagInput';
 
