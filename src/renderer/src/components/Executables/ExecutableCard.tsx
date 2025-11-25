@@ -55,7 +55,7 @@ export function ExecutableCard({ executable, onLaunch, onEdit, onDelete }: Execu
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 rounded-full hover:bg-background/80 text-foreground"
+                  className="h-8 w-8 rounded-full hover:bg-background/80 hover:shadow-md hover:ring-2 hover:ring-border text-foreground transition-all"
                 >
                   <MoreVertical className="h-4 w-4" />
                 </Button>
