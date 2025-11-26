@@ -25,7 +25,6 @@ export function AddExecutableDialog({ open, onOpenChange, onSuccess, executable,
     title: '',
     executable_path: '',
     parameters: '',
-    category: '',
     tags: '',
     icon: null as string | null,
   });
@@ -65,7 +64,6 @@ export function AddExecutableDialog({ open, onOpenChange, onSuccess, executable,
         title: executable.title,
         executable_path: executable.executable_path,
         parameters: executable.parameters || '',
-        category: executable.category || '',
         tags: executable.tags || '',
         icon: executable.icon || null,
       });
@@ -74,7 +72,6 @@ export function AddExecutableDialog({ open, onOpenChange, onSuccess, executable,
         title: '', 
         executable_path: '', 
         parameters: '', 
-        category: '', 
         tags: prefilledTag || '', 
         icon: null 
       });
@@ -86,6 +83,9 @@ export function AddExecutableDialog({ open, onOpenChange, onSuccess, executable,
     
     // Commit any pending tag input before submitting (synchronously)
     const finalTags = tagInputRef.current?.commitPendingTag() || formData.tags;
+    
+    console.log('📋 Submitting executable with tags:', finalTags);
+    console.log('📋 formData.tags:', formData.tags);
     
     if (!formData.title || !formData.executable_path) {
       toast.error('Please fill in required fields');
@@ -122,7 +122,6 @@ export function AddExecutableDialog({ open, onOpenChange, onSuccess, executable,
           executable_path: formData.executable_path,
           parameters: formData.parameters || undefined,
           icon: icon || undefined,
-          category: formData.category || undefined,
           tags: finalTags || undefined,
           updated_by: userEmail || 'local-user',
         });
@@ -133,7 +132,6 @@ export function AddExecutableDialog({ open, onOpenChange, onSuccess, executable,
           executable_path: formData.executable_path,
           parameters: formData.parameters || undefined,
           icon: icon || undefined,
-          category: formData.category || undefined,
           tags: finalTags || undefined,
           is_team_level: 0,
           is_personal: 1,
@@ -143,7 +141,7 @@ export function AddExecutableDialog({ open, onOpenChange, onSuccess, executable,
         toast.success('Executable created successfully');
       }
 
-      setFormData({ title: '', executable_path: '', parameters: '', category: '', tags: '', icon: null });
+      setFormData({ title: '', executable_path: '', parameters: '', tags: '', icon: null });
       onOpenChange(false);
       onSuccess();
     } catch (error) {
@@ -242,16 +240,7 @@ export function AddExecutableDialog({ open, onOpenChange, onSuccess, executable,
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="category">Category</Label>
-              <Input
-                id="category"
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                placeholder="Tools, Games, etc."
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="tags">Tags (Optional)</Label>
+              <Label htmlFor="tags">Tags</Label>
               <TagInput
                 ref={tagInputRef}
                 value={formData.tags}
