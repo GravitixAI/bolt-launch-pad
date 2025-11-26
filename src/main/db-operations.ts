@@ -243,14 +243,14 @@ export const dbOperations = {
     
     const stmt = db.prepare(`
       INSERT INTO executables (
-        id, title, executable_path, parameters, icon, category, 
+        id, title, executable_path, parameters, icon, category, tags,
         is_team_level, is_personal, created_by, updated_by, sync_hash
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     
     stmt.run(
       id, executable.title, executable.executable_path, executable.parameters,
-      executable.icon, executable.category, executable.is_team_level,
+      executable.icon, executable.category, executable.tags, executable.is_team_level,
       executable.is_personal, executable.created_by, executable.updated_by, sync_hash
     );
     
@@ -304,7 +304,7 @@ export const dbOperations = {
     
     const stmt = db.prepare(`
       UPDATE executables 
-      SET title = ?, executable_path = ?, parameters = ?, icon = ?, category = ?, 
+      SET title = ?, executable_path = ?, parameters = ?, icon = ?, category = ?, tags = ?,
           is_team_level = ?, is_personal = ?, updated_by = ?,
           updated_at = CURRENT_TIMESTAMP, sync_hash = ?
       WHERE id = ?
@@ -312,7 +312,7 @@ export const dbOperations = {
     
     return stmt.run(
       updated.title, updated.executable_path, updated.parameters, updated.icon,
-      updated.category, updated.is_team_level, updated.is_personal,
+      updated.category, updated.tags, updated.is_team_level, updated.is_personal,
       updated.updated_by, sync_hash, id
     );
   },
