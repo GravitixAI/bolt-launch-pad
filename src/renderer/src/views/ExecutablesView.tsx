@@ -184,109 +184,90 @@ export function ExecutablesView() {
   return (
     <div className="p-8">
       <div className="max-w-7xl mx-auto space-y-8">
-        {/* General (Untagged) Section - Always first */}
-        {untagged.length > 0 && (
-          <div>
-            <h2 className="text-xl font-semibold mb-4 text-foreground">General</h2>
+        {/* General (Untagged) Section - Always show, even if empty */}
+        <div>
+          <h2 className="text-xl font-semibold mb-4 text-foreground">General</h2>
+          <div
+            className={cn(
+              "flex flex-wrap gap-6 p-4 rounded-lg border-2 border-dashed transition-all",
+              dropTarget === null ? "border-primary bg-primary/5" : "border-transparent"
+            )}
+            onDragOver={(e) => handleDragOverSection(e, null)}
+            onDragLeave={handleDragLeaveSection}
+            onDrop={(e) => handleDropOnSection(e, null)}
+          >
+            {untagged.map((executable) => (
+              <ExecutableCard
+                key={executable.id}
+                executable={executable}
+                onLaunch={handleLaunch}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onDragStart={handleDragStart}
+                isDragging={draggingExecutable?.id === executable.id}
+              />
+            ))}
+            
+            {/* Add Shortcut Button - always visible in General section */}
             <div
-              className={cn(
-                "flex flex-wrap gap-6 p-4 rounded-lg border-2 border-dashed transition-all",
-                dropTarget === null ? "border-primary bg-primary/5" : "border-transparent"
-              )}
-              onDragOver={(e) => handleDragOverSection(e, null)}
-              onDragLeave={handleDragLeaveSection}
-              onDrop={(e) => handleDropOnSection(e, null)}
+              className="flex flex-col items-center gap-2 w-24 cursor-pointer"
+              onClick={() => {
+                setEditingExecutable(null);
+                setPrefilledTag(null);
+                setAddDialogOpen(true);
+              }}
             >
-              {untagged.map((executable) => (
-                <ExecutableCard
-                  key={executable.id}
-                  executable={executable}
-                  onLaunch={handleLaunch}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  onDragStart={handleDragStart}
-                  isDragging={draggingExecutable?.id === executable.id}
-                />
-              ))}
-              
-              {/* Add Shortcut Button for untagged section */}
-              <div
-                className="flex flex-col items-center gap-2 w-24 cursor-pointer"
-                onClick={() => {
-                  setEditingExecutable(null);
-                  setPrefilledTag(null);
-                  setAddDialogOpen(true);
-                }}
-              >
-                <div className="flex items-center justify-center w-20 h-20 rounded-full bg-muted hover:bg-accent hover:scale-105 hover:shadow-lg hover:ring-2 hover:ring-border dark:hover:shadow-white/20 dark:hover:ring-white/30 dark:hover:brightness-125 transition-all">
-                  <Plus className="w-6 h-6 text-muted-foreground" />
-                </div>
-                <span className="text-sm text-center text-foreground">Add shortcut</span>
+              <div className="flex items-center justify-center w-20 h-20 rounded-full bg-muted hover:bg-accent hover:scale-105 hover:shadow-lg hover:ring-2 hover:ring-border dark:hover:shadow-white/20 dark:hover:ring-white/30 dark:hover:brightness-125 transition-all">
+                <Plus className="w-6 h-6 text-muted-foreground" />
               </div>
+              <span className="text-sm text-center text-foreground">Add shortcut</span>
             </div>
           </div>
-        )}
+        </div>
 
-        {/* Tagged Groups - Alphabetically sorted */}
-        {tagNames.map((tag) => (
-          <div key={tag}>
-            <h2 className="text-xl font-semibold mb-4 text-foreground capitalize">{tag}</h2>
-            <div
-              className={cn(
-                "flex flex-wrap gap-6 p-4 rounded-lg border-2 border-dashed transition-all",
-                dropTarget === tag ? "border-primary bg-primary/5" : "border-transparent"
-              )}
-              onDragOver={(e) => handleDragOverSection(e, tag)}
-              onDragLeave={handleDragLeaveSection}
-              onDrop={(e) => handleDropOnSection(e, tag)}
-            >
-              {groups[tag].map((executable) => (
-                <ExecutableCard
-                  key={executable.id}
-                  executable={executable}
-                  onLaunch={handleLaunch}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  onDragStart={handleDragStart}
-                  isDragging={draggingExecutable?.id === executable.id}
-                />
-              ))}
-              
-              {/* Add Shortcut Button for this tag */}
+        {/* Tagged Groups - Alphabetically sorted, only show if has items */}
+        {tagNames.map((tag) => {
+          const tagExecutables = groups[tag];
+          if (tagExecutables.length === 0) return null; // Don't show empty tag sections
+          
+          return (
+            <div key={tag}>
+              <h2 className="text-xl font-semibold mb-4 text-foreground capitalize">{tag}</h2>
               <div
-                className="flex flex-col items-center gap-2 w-24 cursor-pointer"
-                onClick={() => handleAddWithTag(tag)}
+                className={cn(
+                  "flex flex-wrap gap-6 p-4 rounded-lg border-2 border-dashed transition-all",
+                  dropTarget === tag ? "border-primary bg-primary/5" : "border-transparent"
+                )}
+                onDragOver={(e) => handleDragOverSection(e, tag)}
+                onDragLeave={handleDragLeaveSection}
+                onDrop={(e) => handleDropOnSection(e, tag)}
               >
-                <div className="flex items-center justify-center w-20 h-20 rounded-full bg-muted hover:bg-accent hover:scale-105 hover:shadow-lg hover:ring-2 hover:ring-border dark:hover:shadow-white/20 dark:hover:ring-white/30 dark:hover:brightness-125 transition-all">
-                  <Plus className="w-6 h-6 text-muted-foreground" />
+                {tagExecutables.map((executable) => (
+                  <ExecutableCard
+                    key={executable.id}
+                    executable={executable}
+                    onLaunch={handleLaunch}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onDragStart={handleDragStart}
+                    isDragging={draggingExecutable?.id === executable.id}
+                  />
+                ))}
+                
+                {/* Add Shortcut Button for this tag */}
+                <div
+                  className="flex flex-col items-center gap-2 w-24 cursor-pointer"
+                  onClick={() => handleAddWithTag(tag)}
+                >
+                  <div className="flex items-center justify-center w-20 h-20 rounded-full bg-muted hover:bg-accent hover:scale-105 hover:shadow-lg hover:ring-2 hover:ring-border dark:hover:shadow-white/20 dark:hover:ring-white/30 dark:hover:brightness-125 transition-all">
+                    <Plus className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                  <span className="text-sm text-center text-foreground">Add shortcut</span>
                 </div>
-                <span className="text-sm text-center text-foreground">Add shortcut</span>
               </div>
             </div>
-          </div>
-        ))}
-
-        {/* Empty state when no executables at all */}
-        {executables.length === 0 && (
-          <div>
-            <h2 className="text-xl font-semibold mb-4 text-foreground">General</h2>
-            <div className="flex flex-wrap gap-6 p-4 rounded-lg border-2 border-dashed border-transparent">
-              <div
-                className="flex flex-col items-center gap-2 w-24 cursor-pointer"
-                onClick={() => {
-                  setEditingExecutable(null);
-                  setPrefilledTag(null);
-                  setAddDialogOpen(true);
-                }}
-              >
-                <div className="flex items-center justify-center w-20 h-20 rounded-full bg-muted hover:bg-accent hover:scale-105 hover:shadow-lg hover:ring-2 hover:ring-border dark:hover:shadow-white/20 dark:hover:ring-white/30 dark:hover:brightness-125 transition-all">
-                  <Plus className="w-6 h-6 text-muted-foreground" />
-                </div>
-                <span className="text-sm text-center text-foreground">Add shortcut</span>
-              </div>
-            </div>
-          </div>
-        )}
+          );
+        })}
 
         {/* Dialogs */}
         <AddExecutableDialog
