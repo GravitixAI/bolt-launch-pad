@@ -14,14 +14,17 @@ interface ScriptCardProps {
   onExecute: (script: Script) => void;
   onEdit: (script: Script) => void;
   onDelete: (id: string) => void;
+  onDragStart?: (script: Script) => void;
 }
 
-export function ScriptCard({ script, onExecute, onEdit, onDelete }: ScriptCardProps) {
+export function ScriptCard({ script, onExecute, onEdit, onDelete, onDragStart }: ScriptCardProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
     <div
       className="relative group flex flex-col items-center gap-2 w-24"
+      draggable={true}
+      onDragStart={() => onDragStart?.(script)}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >

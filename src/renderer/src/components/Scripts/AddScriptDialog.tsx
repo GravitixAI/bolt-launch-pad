@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
+import { TagInput, TagInputRef } from '../ui/tag-input';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 import { Script } from '../../types';
@@ -13,17 +14,39 @@ interface AddScriptDialogProps {
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
   script?: Script | null;
+  prefilledTag?: string | null;
 }
 
-export function AddScriptDialog({ open, onOpenChange, onSuccess, script }: AddScriptDialogProps) {
+export function AddScriptDialog({ open, onOpenChange, onSuccess, script, prefilledTag }: AddScriptDialogProps) {
   const { userEmail } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [existingTags, setExistingTags] = useState<string[]>([]);
+  const tagInputRef = useRef<TagInputRef>(null);
   const [formData, setFormData] = useState({
     title: '',
     script_content: '',
     script_type: 'powershell' as 'powershell' | 'cmd',
-    category: '',
+    tags: '',
   });
+
+  // Load existing tags for autocomplete
+  useEffect(() => {
+    const loadTags = async () => {
+      try {
+        const allScripts = await window.scripts.getAll(userEmail || undefined);
+        const tagsSet = new Set<string>();
+        allScripts.forEach(s => {
+          if (s.tags) {
+            s.tags.split(',').forEach(tag => tagsSet.add(tag.trim()));
+          }
+        });
+        setExistingTags(Array.from(tagsSet));
+      } catch (error) {
+        console.error('Failed to load tags:', error);
+      }
+    };
+    loadTags();
+  }, [userEmail]);
 
   useEffect(() => {
     if (script) {
@@ -31,12 +54,17 @@ export function AddScriptDialog({ open, onOpenChange, onSuccess, script }: AddSc
         title: script.title,
         script_content: script.script_content,
         script_type: script.script_type,
-        category: script.category || '',
+        tags: script.tags || '',
       });
     } else {
-      setFormData({ title: '', script_content: '', script_type: 'powershell', category: '' });
+      setFormData({ 
+        title: '', 
+        script_content: '', 
+        script_type: 'powershell', 
+        tags: prefilledTag || '' 
+      });
     }
-  }, [script, open]);
+  }, [script, prefilledTag, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,6 +72,10 @@ export function AddScriptDialog({ open, onOpenChange, onSuccess, script }: AddSc
       toast.error('Please fill in required fields');
       return;
     }
+
+    // Commit any pending tag input before saving
+    const finalTags = tagInputRef.current?.commitPendingTag() || formData.tags;
+    console.log('📋 Script tags before save:', finalTags);
 
     setLoading(true);
     try {
@@ -76,7 +108,7 @@ export function AddScriptDialog({ open, onOpenChange, onSuccess, script }: AddSc
           script_content: formData.script_content,
           script_type: formData.script_type,
           icon,
-          category: formData.category || undefined,
+          tags: finalTags || undefined,
           updated_by: userEmail || 'local-user',
         });
         toast.success('Script updated successfully');
@@ -86,7 +118,7 @@ export function AddScriptDialog({ open, onOpenChange, onSuccess, script }: AddSc
           script_content: formData.script_content,
           script_type: formData.script_type,
           icon,
-          category: formData.category || undefined,
+          tags: finalTags || undefined,
           is_team_level: 0,
           is_personal: 1,
           created_by: userEmail || 'local-user',
@@ -95,7 +127,7 @@ export function AddScriptDialog({ open, onOpenChange, onSuccess, script }: AddSc
         toast.success('Script created successfully');
       }
 
-      setFormData({ title: '', script_content: '', script_type: 'powershell', category: '' });
+      setFormData({ title: '', script_content: '', script_type: 'powershell', tags: '' });
       onOpenChange(false);
       onSuccess();
     } catch (error) {
@@ -157,12 +189,13 @@ export function AddScriptDialog({ open, onOpenChange, onSuccess, script }: AddSc
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="category">Category</Label>
-              <Input
-                id="category"
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                placeholder="Utilities, Admin, etc."
+              <Label htmlFor="tags">Tags</Label>
+              <TagInput
+                ref={tagInputRef}
+                value={formData.tags}
+                onChange={(tags) => setFormData({ ...formData, tags })}
+                suggestions={existingTags}
+                placeholder="Add tags..."
               />
             </div>
           </div>

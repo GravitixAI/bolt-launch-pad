@@ -330,14 +330,14 @@ export const dbOperations = {
     
     const stmt = db.prepare(`
       INSERT INTO scripts (
-        id, title, script_content, script_type, icon, category, 
+        id, title, script_content, script_type, icon, category, tags,
         is_team_level, is_personal, created_by, updated_by, sync_hash
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     
     stmt.run(
       id, script.title, script.script_content, script.script_type,
-      script.icon, script.category, script.is_team_level,
+      script.icon, script.category, script.tags, script.is_team_level,
       script.is_personal, script.created_by, script.updated_by, sync_hash
     );
     
@@ -391,7 +391,7 @@ export const dbOperations = {
     
     const stmt = db.prepare(`
       UPDATE scripts 
-      SET title = ?, script_content = ?, script_type = ?, icon = ?, category = ?, 
+      SET title = ?, script_content = ?, script_type = ?, icon = ?, category = ?, tags = ?,
           is_team_level = ?, is_personal = ?, updated_by = ?,
           updated_at = CURRENT_TIMESTAMP, sync_hash = ?
       WHERE id = ?
@@ -399,7 +399,7 @@ export const dbOperations = {
     
     return stmt.run(
       updated.title, updated.script_content, updated.script_type, updated.icon,
-      updated.category, updated.is_team_level, updated.is_personal,
+      updated.category, updated.tags, updated.is_team_level, updated.is_personal,
       updated.updated_by, sync_hash, id
     );
   },
