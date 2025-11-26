@@ -48,41 +48,50 @@ export async function extractIcon(executablePath: string): Promise<string | null
 async function extractExeIcon(exePath: string): Promise<string | null> {
   try {
     const tempIconPath = path.join(process.env.TEMP || '/tmp', `icon_${Date.now()}.png`);
+    const tempScriptPath = path.join(process.env.TEMP || '/tmp', `extract_icon_${Date.now()}.ps1`);
     
     console.log('🎨 Extracting icon from:', exePath);
     console.log('📁 Temp icon path:', tempIconPath);
     
-    // Use PowerShell to extract icon
-    // NOTE: PowerShell handles paths with backslashes fine, no need to escape them
+    // Create PowerShell script file to avoid command-line escaping issues
     const script = `
-      try {
-        Add-Type -AssemblyName System.Drawing
-        $exePath = '${exePath.replace(/'/g, "''")}'
-        $tempPath = '${tempIconPath.replace(/'/g, "''")}'
-        
-        Write-Host "Extracting icon from: $exePath"
-        $icon = [System.Drawing.Icon]::ExtractAssociatedIcon($exePath)
-        
-        if ($icon) {
-          $bitmap = $icon.ToBitmap()
-          $bitmap.Save($tempPath, [System.Drawing.Imaging.ImageFormat]::Png)
-          $bitmap.Dispose()
-          $icon.Dispose()
-          Write-Host "Icon saved to: $tempPath"
-        } else {
-          Write-Host "No icon found"
-          exit 1
-        }
-      } catch {
-        Write-Host "Error: $_"
-        exit 1
-      }
-    `;
+Add-Type -AssemblyName System.Drawing
 
-    const { stdout, stderr } = await execAsync(`powershell -NoProfile -ExecutionPolicy Bypass -Command "${script}"`);
+try {
+  Write-Host "Extracting icon from: ${exePath}"
+  $icon = [System.Drawing.Icon]::ExtractAssociatedIcon("${exePath}")
+  
+  if ($icon) {
+    $bitmap = $icon.ToBitmap()
+    $bitmap.Save("${tempIconPath}", [System.Drawing.Imaging.ImageFormat]::Png)
+    $bitmap.Dispose()
+    $icon.Dispose()
+    Write-Host "Icon saved to: ${tempIconPath}"
+    exit 0
+  } else {
+    Write-Host "No icon found"
+    exit 1
+  }
+} catch {
+  Write-Host "Error: $($_.Exception.Message)"
+  Write-Host $_.ScriptStackTrace
+  exit 1
+}
+`;
+
+    // Write script to temp file
+    fs.writeFileSync(tempScriptPath, script, 'utf8');
+    
+    // Execute the script file
+    const { stdout, stderr } = await execAsync(`powershell -NoProfile -ExecutionPolicy Bypass -File "${tempScriptPath}"`);
     
     console.log('PowerShell stdout:', stdout);
     if (stderr) console.error('PowerShell stderr:', stderr);
+    
+    // Clean up script file
+    if (fs.existsSync(tempScriptPath)) {
+      fs.unlinkSync(tempScriptPath);
+    }
 
     // Read the icon file and convert to base64
     if (fs.existsSync(tempIconPath)) {
