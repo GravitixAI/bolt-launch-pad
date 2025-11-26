@@ -31,6 +31,10 @@ export function ScriptsView() {
   const loadScripts = async () => {
     try {
       const data = await window.scripts.getAll(userEmail || undefined);
+      console.log('📚 Loaded scripts:', data.length);
+      data.forEach(s => {
+        console.log(`- ${s.title}: icon=${s.icon ? `${s.icon.substring(0, 50)}...` : 'NULL'}`);
+      });
       setScripts(data);
     } catch (error) {
       console.error('Failed to load scripts:', error);
@@ -157,7 +161,7 @@ export function ScriptsView() {
   };
 
   if (loading) {
-    return <div className="p-8">Loading scripts...</div>;
+    return <div className="p-4">Loading scripts...</div>;
   }
 
   // Group scripts by tags
@@ -174,11 +178,11 @@ export function ScriptsView() {
   const sortedTags = Array.from(allTags).sort();
 
   return (
-    <div className="p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="p-4">
+      <div className="max-w-full mx-auto space-y-8">
         {/* General Section (always visible) */}
         <div>
-          <h2 className="text-2xl font-bold mb-4 text-foreground">General</h2>
+          <h2 className="text-xl font-semibold mb-4 text-foreground">General</h2>
           <div
             onDragOver={(e) => handleDragOverSection(e, null)}
             onDragLeave={handleDragLeaveSection}
@@ -234,7 +238,7 @@ export function ScriptsView() {
 
           return (
             <div key={tag}>
-              <h2 className="text-2xl font-bold mb-4 text-foreground capitalize">{tag}</h2>
+              <h2 className="text-xl font-semibold mb-4 text-foreground capitalize">{tag}</h2>
               <div
                 onDragOver={(e) => handleDragOverSection(e, tag)}
                 onDragLeave={handleDragLeaveSection}

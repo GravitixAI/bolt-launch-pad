@@ -3,12 +3,61 @@ import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import sharp from 'sharp';
+import { app } from 'electron';
 
 const execAsync = promisify(exec);
 
-// Default icons (embedded as base64)
-const DEFAULT_POWERSHELL_ICON = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAABvUlEQVR4nO2WzUrDQBSFv1iFLlyI4kJ8AV/BrQtx4ytYV+5cuBBf4AU3gvgCbly5EF/AhQsXLkRBEBQE0YWgfnIhEJqmSSZtBD0wkJnMPefemZtMoEWLFv8JfcAI8AacA1+l0bwJrAL7wCswBXS1egCtwBywDXwCbyX9APYiArMR7gA4A2aB9lYP4B5YBt6Bk4ju+4FD4LUkgwWgu9UDsJ79A1hTTWzr3jJwDNzq3prG9wJ3wIGePVT+7rQDeALmNbixSf1Ybwqd01MADxp/08ztahDvAVyqJgtqxHJNAK+6/wR0pQDgTl1XO7CrG0vAfgMBvOjZF7CRCoBnfV3NwAbQoWeM1AhgU8++ge1UAKwDRzUC+NazLGVzADZqAnCq+ylN+dR9UhOAUz1rANiJBGAV+NB9DiylBOAMeNdFUztQqgP4UAD24gAYqRGAmd0BHE0FwDDwpK+zL2DXCkA7cA2cJAjgEhiPAmBBa7Kvxs87wBDwqHsz27cLdMQEULrmJyMC+AxaMQGcAysR7zC09gdjA7C8GQ4B4FWN3m9o7YEGAbyVxjsaWvunqRY/L60Q/yN+AJyZFOkLYYUfAAAAAElFTkSuQmCC';
-const DEFAULT_CMD_ICON = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAABpUlEQVR4nO2WzUrDQBDH/7VK8aDgQcGDvoAP4NWDePUVrCdvHjyIL/ACHgTxBTx48eSBB68ePHjwICgIgoKgr2CdgQkhaTfbNKl+MJBkJ/P7Z2c2uwG0aNGiBfAbJIEJ4Aq4BSq+UbsBq8ABcA4sAt2tHkASWAD2gXfg2Tc+xm8BDyKCy8A5MAu0t3oAT8BS5HxOAuN1ATgGXkV+CxjwA3ACPInMHDDU6gHYyP4FLNQ0sa57g8AJ8KIYO6r3AffAsei9+P5utQN4BhZU+Hiq/rDOFNqnRwEedf+u1dspBfAhvk67a/mLx3cUwIP6/psCeCBWOoDLynFiBHChe1/AeioAXlU2OYsJ0bOU7gD4FdlZAJU2gMMmATiQ/R9gJxUAa8BxkwBexP4NHKUCYBk4bBKAY9kvN+C/CxQaBPAs9lvNVsA88KznVbx2IKYCeNPa98cEcB0DgGdtsBoEcCf2yxEBXErBN+p5TgBQi/4HYKzaKgCugdUmAdR7hs+o9dduQLXt+x6V77tAAK9ifwfMpwJgGHj8YQAvYj+VEoBRYL9JAN+b/r/iD7+5EvigjDnDAAAAAElFTkSuQmCC';
+// Load and cache default icons
+let DEFAULT_POWERSHELL_ICON: string | null = null;
+let DEFAULT_CMD_ICON: string | null = null;
+
+/**
+ * Load default icons from assets folder
+ */
+async function loadDefaultIcons() {
+  if (DEFAULT_POWERSHELL_ICON && DEFAULT_CMD_ICON) {
+    return; // Already loaded
+  }
+
+  try {
+    // Get paths to icon files
+    const isDev = !app.isPackaged;
+    const basePath = isDev 
+      ? path.join(process.cwd(), 'src', 'assets')
+      : path.join(process.resourcesPath, 'assets');
+
+    const psIconPath = path.join(basePath, 'powershell-icon.png');
+    const cmdIconPath = path.join(basePath, 'cmd-icon.png');
+
+    console.log('📂 Loading default icons from:', basePath);
+
+    // Load and resize PowerShell icon
+    if (fs.existsSync(psIconPath)) {
+      const psBuffer = await sharp(psIconPath)
+        .resize(128, 128, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+        .png()
+        .toBuffer();
+      DEFAULT_POWERSHELL_ICON = `data:image/png;base64,${psBuffer.toString('base64')}`;
+      console.log('✅ PowerShell icon loaded, length:', DEFAULT_POWERSHELL_ICON.length);
+    } else {
+      console.error('❌ PowerShell icon not found:', psIconPath);
+    }
+
+    // Load and resize CMD icon
+    if (fs.existsSync(cmdIconPath)) {
+      const cmdBuffer = await sharp(cmdIconPath)
+        .resize(128, 128, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+        .png()
+        .toBuffer();
+      DEFAULT_CMD_ICON = `data:image/png;base64,${cmdBuffer.toString('base64')}`;
+      console.log('✅ CMD icon loaded, length:', DEFAULT_CMD_ICON.length);
+    } else {
+      console.error('❌ CMD icon not found:', cmdIconPath);
+    }
+  } catch (error) {
+    console.error('❌ Error loading default icons:', error);
+  }
+}
 
 /**
  * Extract icon from executable and convert to base64
@@ -150,15 +199,17 @@ async function resolveShortcut(lnkPath: string): Promise<string | null> {
 /**
  * Get default PowerShell icon
  */
-export function getDefaultPowerShellIcon(): string {
-  return DEFAULT_POWERSHELL_ICON;
+export async function getDefaultPowerShellIcon(): Promise<string> {
+  await loadDefaultIcons();
+  return DEFAULT_POWERSHELL_ICON || '';
 }
 
 /**
  * Get default CMD icon
  */
-export function getDefaultCmdIcon(): string {
-  return DEFAULT_CMD_ICON;
+export async function getDefaultCmdIcon(): Promise<string> {
+  await loadDefaultIcons();
+  return DEFAULT_CMD_ICON || '';
 }
 
 /**

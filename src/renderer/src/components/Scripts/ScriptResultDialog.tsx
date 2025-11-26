@@ -22,7 +22,7 @@ export function ScriptResultDialog({ open, onOpenChange, result, scriptTitle }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[80vh]">
+      <DialogContent className="sm:max-w-[1000px] max-h-[80vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {result.success ? (

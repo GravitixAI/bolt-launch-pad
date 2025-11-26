@@ -175,15 +175,15 @@ export function ExecutablesView() {
   };
 
   if (loading) {
-    return <div className="p-8">Loading executables...</div>;
+    return <div className="p-4">Loading executables...</div>;
   }
 
   const { groups, untagged } = groupedExecutables();
   const tagNames = Object.keys(groups).sort();
 
   return (
-    <div className="p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="p-4">
+      <div className="max-w-full mx-auto space-y-8">
         {/* General (Untagged) Section - Always show, even if empty */}
         <div>
           <h2 className="text-xl font-semibold mb-4 text-foreground">General</h2>

@@ -37,16 +37,30 @@ export function ScriptCard({ script, onExecute, onEdit, onDelete, onDragStart }:
       >
         {/* Icon or fallback */}
         {script.icon ? (
-          <img
-            src={script.icon}
-            alt={script.title}
-            className="w-8 h-8 object-contain"
-          />
+          <>
+            {console.log(`🖼️ Rendering icon for ${script.title}, length: ${script.icon.length}`)}
+            <img
+              src={script.icon}
+              alt={script.title}
+              className="w-8 h-8 object-contain"
+              onError={(e) => {
+                console.error(`❌ Failed to load icon for ${script.title}`);
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          </>
         ) : (
           <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
             <Terminal className="w-5 h-5 text-primary" />
           </div>
         )}
+
+        {/* Script Type Badge - Overlaid at Top */}
+        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground border border-border shadow-sm font-medium">
+            {script.script_type === 'powershell' ? 'PS' : 'CMD'}
+          </span>
+        </div>
 
         {/* Kabob menu - appears on hover */}
         {isHovered && (
@@ -76,14 +90,9 @@ export function ScriptCard({ script, onExecute, onEdit, onDelete, onDragStart }:
         )}
       </div>
 
-      {/* Title */}
-      <span className="text-sm text-center text-foreground truncate w-full px-1">
+      {/* Title - 3 lines with ellipsis */}
+      <span className="text-sm text-center text-foreground w-full px-1 line-clamp-3 leading-tight">
         {script.title}
-      </span>
-
-      {/* Badge for script type */}
-      <span className="text-xs px-2 py-0.5 rounded bg-secondary text-secondary-foreground">
-        {script.script_type}
       </span>
     </div>
   );

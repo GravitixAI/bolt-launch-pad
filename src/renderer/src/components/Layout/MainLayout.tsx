@@ -35,9 +35,9 @@ export function MainLayout({ children, currentView, onViewChange }: MainLayoutPr
   };
 
   const navItems = [
-    { id: 'bookmarks' as ViewType, icon: Bookmark, label: 'Bookmarks' },
-    { id: 'executables' as ViewType, icon: Terminal, label: 'Executables' },
     { id: 'scripts' as ViewType, icon: FileCode, label: 'Scripts' },
+    { id: 'executables' as ViewType, icon: Terminal, label: 'Executables' },
+    { id: 'bookmarks' as ViewType, icon: Bookmark, label: 'Bookmarks' },
   ];
 
   return (
@@ -46,7 +46,7 @@ export function MainLayout({ children, currentView, onViewChange }: MainLayoutPr
       <div className="w-64 border-r border-border bg-card flex flex-col">
         {/* Header */}
         <div className="p-4 border-b border-border">
-          <h1 className="text-xl font-bold text-foreground">Bolt Launch Pad</h1>
+          <h1 className="text-xl font-bold text-foreground">BOLT Launch Pad</h1>
           <p className="text-sm text-muted-foreground truncate">{userEmail}</p>
         </div>
 

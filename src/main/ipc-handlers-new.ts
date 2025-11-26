@@ -511,7 +511,9 @@ function registerSystemHandlers() {
 
   ipcMain.handle('system:getDefaultPowerShellIcon', async () => {
     try {
-      return iconService.getDefaultPowerShellIcon();
+      const icon = await iconService.getDefaultPowerShellIcon();
+      console.log('🔷 PowerShell icon length:', icon?.length || 'NULL');
+      return icon;
     } catch (error) {
       console.error('Error getting default PowerShell icon:', error);
       throw error;
@@ -520,7 +522,9 @@ function registerSystemHandlers() {
 
   ipcMain.handle('system:getDefaultCmdIcon', async () => {
     try {
-      return iconService.getDefaultCmdIcon();
+      const icon = await iconService.getDefaultCmdIcon();
+      console.log('🔶 CMD icon length:', icon?.length || 'NULL');
+      return icon;
     } catch (error) {
       console.error('Error getting default CMD icon:', error);
       throw error;
